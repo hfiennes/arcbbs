@@ -1,0 +1,1228 @@
+;                    _____________________________________________
+;                  [>                                             <]
+;Project           [> ARCbbs                                      <]
+;Author            [> Hugo Fiennes                                <]
+;Date started      [> 04-April-1989                               <]
+;                  [>                                             <]
+;Module name       [> Module for file routines                    <]
+;Current version   [> 00.40                                       <]
+;Version date      [> 23-December-1992                            <]
+;State             [> Unfinished                                  <]
+;                  [>                                             <]
+;                  [> This source is COPYRIGHT © 1989/90/91/92 by <]
+;                  [>      Hugo Fiennes of The Serial Port        <]
+;                  [>_____________________________________________<]
+
+; SWI values
+
+WriteC        * &00
+CLI           * &05
+Byte          * &06
+SerialOp      * &57
+Find          * &0d
+File          * &08
+Module        * &1e
+GBPB          * &0c
+Args          * &09
+IntOn         * &13
+IntOff        * &14
+
+r0 RN 0
+r1 RN 1
+r2 RN 2
+r3 RN 3
+r4 RN 4
+r5 RN 5
+r6 RN 6
+r7 RN 7
+r8 RN 8
+r9 RN 9
+r10 RN 10
+r11 RN 11
+r12 RN 12
+r13 RN 13
+r14 RN 14
+pc RN 15
+
+X             * &00020000 ; mask to make a swi a RISC OS v-error swi
+
+;--- Module header ------------------------------------------------------------
+
+startmodule
+        DCD  0                       ; No start code
+        DCD  (init-startmodule)      ; Initialise opens files
+        DCD  (final-startmodule)     ; Finalise closes files
+        DCD  0                       ; No service call handler
+        DCD  (title-startmodule)     ; Title of module
+        DCD  (help-startmodule)      ; Help text for module
+        DCD  0                       ; No commands
+        DCD  &41000                  ; SWI base
+        DCD  (swih-startmodule)      ; SWI handler
+        DCD  (swinames-startmodule)  ; SWI names
+        DCD  0                       ; No decoding code
+
+title
+        = "ARCbbs_Filer",0
+
+help
+        = "ARCbbs Filer",9,"0.40 (23 Dec 1992) © Hugo Fiennes",0
+
+;--- Filenames ----------------------------------------------------------------
+
+name_maildata
+        = "<ARCbbs$maildata>.Data",0
+
+name_maillookup
+        = "<ARCbbs$maildata>.Lookup",0
+
+name_maildatamap
+        = "<ARCbbs$maildata>.DataMap",0
+
+name_maillookupmap
+        = "<ARCbbs$maildata>.LookupMap",0
+
+name_mailarea
+        = "<ARCbbs$maildata>.Area",0
+
+name_info
+        = "<ARCbbs$maildata>.Info",0
+                      
+name_userdata
+        = "<ARCbbs$userdata>.Data",0
+
+name_userlookup
+        = "<ARCbbs$userdata>.Lookup",0
+
+name_userinfo
+        = "<ARCbbs$userdata>.Info",0
+             
+name_callcount
+        = "<ARCbbs$miscdata>.CallCount",0
+
+        ALIGN
+
+;--- Pointers to workspace ----------------------------------------------------
+
+pointer_area
+        DCD 0
+pointer_datamap
+        DCD 0
+pointer_lookupmap
+        DCD 0      
+pointer_status
+        DCD 0
+
+length_area
+        DCD 0
+length_datamap
+        DCD 0
+length_lookupmap
+        DCD 0
+last_message
+        DCD 0
+maxuser
+        DCD 0
+callcount                   ; This & lastfile MUST be sequential in memory
+        DCD 0     
+lastfile
+        DCD 0
+
+nocrash
+        DCD 2      ; No save incase of slow startup
+
+;--- Mail file handles --------------------------------------------------------
+
+handle_maildata
+        DCD -1
+handle_maillookup
+        DCD -1
+handle_userdata
+        DCD -1
+handle_userlookup
+        DCD -1
+
+;--- Save datamap file --------------------------------------------------------
+save_datamap
+        STMFD r13!,{r0-r5,r14}
+        MOV   r0,#10
+        ADRL  r1,name_maildatamap
+        MOV   r2,#&d
+        ORR   r2,r2,#&ff0
+        LDR   r4,pointer_datamap
+        LDR   r5,length_datamap
+        ADD   r5,r5,r4
+        SWI   File
+        LDMFD r13!,{r0-r5,pc}^
+
+;--- Save callcount file ------------------------------------------------------
+save_callcount
+        STMFD r13!,{r0-r5,r14}
+        ; Save callcount/lastfile
+        MOV   r0,#10
+        ADRL  r1,name_callcount
+        MOV   r2,#&d
+        ORR   r2,r2,#&ff0
+        ADRL  r4,callcount
+        ADD   r5,r4,#8
+        SWI   File
+        LDMFD r13!,{r0-r5,pc}^
+
+;--- Save lookupmap file ------------------------------------------------------
+save_lookupmap
+        STMFD r13!,{r0-r5,r14}
+        MOV   r0,#10
+        ADRL  r1,name_maillookupmap
+        MOV   r2,#&d
+        ORR   r2,r2,#&ff0
+        LDR   r4,pointer_lookupmap
+        LDR   r5,length_lookupmap
+        ADD   r5,r5,r4
+        SWI   File
+        LDMFD r13!,{r0-r5,pc}^
+
+;--- Open mail files ----------------------------------------------------------
+openmailfiles
+        STMFD r13!,{r0-r5,r14}
+
+        ; Open maildata file (r/w, no open dir, use no path)
+        MOV   r0,#&cf     
+        ADRL  r1,name_maildata
+        SWI   Find
+        STR   r0,handle_maildata
+
+        ; Open maillookup file (r/w, no open dir, use no path)
+        MOV   r0,#&cf     
+        ADRL  r1,name_maillookup
+        SWI   Find
+        STR   r0,handle_maillookup
+
+        ; Load area file
+        MOV   r0,#16
+        ADRL  r1,name_mailarea
+        LDR   r2,pointer_area
+        MOV   r3,#0
+        SWI   File
+
+        ; Load datamap file
+        MOV   r0,#16
+        ADRL  r1,name_maildatamap
+        LDR   r2,pointer_datamap
+        MOV   r3,#0
+        SWI   File
+
+        ; Load lookupmap file
+        MOV   r0,#16
+        ADRL  r1,name_maillookupmap
+        LDR   r2,pointer_lookupmap
+        MOV   r3,#0
+        SWI   File
+
+        ; Load info file
+        MOV   r0,#16
+        ADRL  r1,name_info
+        ADRL  r2,last_message
+        MOV   r3,#0
+        SWI   File
+ 
+        ; Load callcount/lastfile file
+        MOV   r0,#16
+        ADRL  r1,name_callcount
+        ADRL  r2,callcount
+        MOV   r3,#0
+        SWI   File
+ 
+        LDMFD r13!,{r0-r5,pc}^
+
+
+openuserfiles
+        STMFD r13!,{r0-r5,r14}
+
+        ; Load maxuser file
+        MOV   r0,#16
+        ADRL  r1,name_userinfo
+        ADRL  r2,maxuser
+        MOV   r3,#0
+        SWI   File
+
+        ; Open userdata file (r/w, no open dir, use no path)
+        MOV   r0,#&cf     
+        ADRL  r1,name_userdata
+        SWI   Find
+        STR   r0,handle_userdata
+
+        ; Open userlookup file (r/w, no open dir, use no path)
+        MOV   r0,#&cf     
+        ADRL  r1,name_userlookup
+        SWI   Find
+        STR   r0,handle_userlookup
+
+        LDMFD r13!,{r0-r5,pc}^
+
+;--- Close files --------------------------------------------------------------
+closemailfiles
+        STMFD r13!,{r0-r5,r14}
+
+        ; Close files
+        MOV   r0,#0
+        LDR   r1,handle_maildata
+        CMP   r1,#-1
+        SWINE Find
+
+        MOV   r0,#0
+        LDR   r1,handle_maillookup
+        CMP   r1,#-1
+        SWINE Find
+
+        ; Save area file
+        MOV   r0,#10
+        ADRL  r1,name_mailarea
+        MOV   r2,#&d
+        ORR   r2,r2,#&ff0
+        LDR   r4,pointer_area
+        LDR   r5,length_area
+        ADD   r5,r5,r4
+        SWI   File
+
+        BL    save_datamap
+        BL    save_lookupmap
+        BL    save_last
+        BL    save_callcount
+
+        LDMFD r13!,{r0-r5,pc}^
+
+closeuserfiles
+        STMFD r13!,{r0-r5,r14}
+
+        MOV   r0,#0
+        LDR   r1,handle_userdata
+        CMP   r1,#-1
+        SWINE Find
+
+        MOV   r0,#0
+        LDR   r1,handle_userlookup
+        CMP   r1,#-1
+        SWINE Find
+
+        LDMFD r13!,{r0-r5,pc}^
+
+;--- Initialise module --------------------------------------------------------
+init
+        STMFD r13!,{r1-r9,r14}
+
+        ; Allocate memory for area file
+        MOV   r0,#17
+        ADRL  r1,name_mailarea
+        SWI   File
+        STR   r4,length_area
+        MOV   r3,r4
+        MOV   r0,#6
+        SWI   Module
+        STR   r2,pointer_area
+        STR   r2,[r12]
+
+        ; Allocate memory for datamap file
+        MOV   r0,#17
+        ADRL  r1,name_maildatamap
+        SWI   File
+        STR   r4,length_datamap
+        MOV   r3,r4
+        MOV   r0,#6
+        SWI   Module
+        STR   r2,pointer_datamap
+
+        ; Allocate memory for datamap file
+        MOV   r0,#17
+        ADRL  r1,name_maillookupmap
+        SWI   File
+        STR   r4,length_lookupmap
+        MOV   r3,r4
+        MOV   r0,#6
+        SWI   Module
+        STR   r2,pointer_lookupmap
+
+        ; Get memory for online status map
+        MOV   r3,#1024
+        MOV   r0,#6
+        SWI   Module
+        STR   r2,pointer_status
+
+        ; Go open files
+        BL    openmailfiles
+        BL    openuserfiles
+                        
+        ; Return
+        LDMFD r13!,{r1-r9,pc}^
+
+;--- Finalise code ------------------------------------------------------------
+final
+        STMFD r13!,{r0-r9,r14}
+                                 
+        ; Close files
+        BL    closemailfiles
+        BL    closeuserfiles
+ 
+        ; Freeup space
+        MOV   r0,#7
+        LDR   r2,pointer_area
+        SWI   X+Module
+        MOV   r0,#7
+        LDR   r2,pointer_datamap
+        SWI   X+Module
+        MOV   r0,#7
+        LDR   r2,pointer_lookupmap
+        SWI   X+Module
+        MOV   r0,#7
+        LDR   r2,pointer_status
+        SWI   X+Module
+
+        LDMFD r13!,{r0-r9,pc}^
+
+
+;--- SWI handler --------------------------------------------------------------
+swih
+        CMP   r11,#((endoftable-table)/4)
+        ADDCC pc,pc,r11,LSL#2
+        B     unknownswi
+
+table
+        B     readarea
+        B     writearea
+        B     readdata
+        B     writedata
+        B     readlookup
+        B     writelookup
+        B     lockdata
+        B     freedata
+        B     locklookup
+        B     freelookup
+        B     lastlookup
+        B     getlastlookup
+        B     lastarea
+        B     saveall       
+        B     readuserdata
+        B     writeuserdata
+        B     readuserlookup
+        B     writeuserlookup
+        B     extentuser
+        B     readmaxuser
+        B     getstatuspointer 
+        B     openall
+        B     closeall 
+        B     inccallcount
+        B     readcallcount
+        B     filenumber
+        B     readfilenumber
+        B     clearflag
+        B     returnlkmap
+        B     returndamap
+        B     returnlengthlk
+        B     returnlengthda
+        B     dataext    
+        B     ensurelookup
+        B     ensuredata
+        B     savemaps
+        B     ensureuser
+        B     writedatablock
+        B     readdatablock
+        B     lookupext
+
+endoftable
+
+unknownswi
+        LDMFD r13!,{r0,r14}
+        ADRL  r0,errmsg
+        ORRS  pc,r14,#(1:SHL:28)
+
+errmsg
+        DCD  &1e6
+        =     "Unknown ARCbbs_Filer operation",0
+
+;--- SWI name decode table ----------------------------------------------------
+swinames
+        = "ARCbbsFiler",0     ; Group prefix
+        = "ReadArea",0
+        = "WriteArea",0
+        = "ReadData",0
+        = "WriteData",0
+        = "ReadLookup",0
+        = "WriteLookup",0
+        = "LockData",0
+        = "FreeData",0
+        = "LockLookup",0
+        = "FreeLookup",0
+        = "LastLookup",0
+        = "GetLastLookup",0
+        = "GetLastArea",0
+        = "SaveAll",0        
+        = "ReadUserData",0
+        = "WriteUserData",0
+        = "ReadUserLookup",0
+        = "WriteUserLookup",0
+        = "ExtentUser",0         
+        = "Maxuser",0         
+        = "GetStatusPointer",0 
+        = "OpenAll",0
+        = "CloseAll",0      
+        = "IncCallCount",0 
+        = "ReadCallCount",0
+        = "FileNumber",0
+        = "ReadFileNumber",0
+        = "StartInterrupt",0
+        = "StopInterrupt",0
+        = "ClearFlag",0  
+        = "LkMap",0
+        = "DaMap",0
+        = "DataExt",0
+        = "EnsureLookup",0
+        = "EnsureData",0
+        = "SaveMaps",0  
+        = "EnsureUser",0
+        = "WriteDataBlock",0
+        = "ReadDataBlock",0
+        = "LookupExt",0
+        = 0
+
+;--- Actual functions ---------------------------------------------------------
+
+;--- Lockdata -----------------------------------------------------------------
+lockdata
+        STMFD r13!,{r4-r8}  ; Enter with r0=space needed in bytes,
+                            ; Exit with r0=first locked
+        ADD   r0,r0,#256+9  ; (9 bytes header)
+        MOV   r4,r0,LSR#8   ; Find number of blocks needed
+        LDR   r5,pointer_datamap
+        LDR   r2,length_datamap
+        MOV   r2,r2,LSL#2   ; 4 entries per byte
+        MOV   r6,#0         ; Start at the beginning
+        MOV   r8,#3         ; Look for any bits set
+
+findspace0         
+        CMP   r6,r2         ; Overrun?
+        BGE   findspace_fail
+
+        LDR   r0,[r5,r6,LSR#5]
+        AND   r7,r6,#31
+        ANDS  r0,r0,r8,LSL r7
+        ADD   r6,r6,#2
+
+        BNE   findspace0    ; No space? Loop.
+
+        ; Find how big gap is
+        SUB   r3,r6,#2      ; r3=start of gap
+        MOV   r1,#0         ; Size of gap
+findspace1
+        ADD   r1,r1,#1
+        CMP   r1,r4
+        BEQ   findspace_ok  ; What we need?
+
+        LDR   r0,[r5,r6,LSR#5]
+        AND   r7,r6,#31
+        ANDS  r0,r0,r8,LSL r7
+        ADD   r6,r6,#2
+        BEQ   findspace1    ; Empty - continue
+
+        BAL   findspace0    ; Not big enough, skip for empty again
+
+
+findspace_ok                ; Lock the blocks
+        MOV   r6,r3
+
+        MOV   r8,#1         ; 01=header block
+
+        LDR   r0,[r5,r6,LSR#5]
+        AND   r7,r6,#31     
+        ORR   r0,r0,r8,LSL r7
+                            ; Lock the block
+        STR   r0,[r5,r6,LSR#5]
+        ADD   r6,r6,#2
+
+        MOV   r8,#2         ; 10=data block
+findspace_ok0
+        LDR   r0,[r5,r6,LSR#5]
+        AND   r7,r6,#31     
+        ORR   r0,r0,r8,LSL r7
+                            ; Lock the block
+        STR   r0,[r5,r6,LSR#5]
+        ADD   r6,r6,#2
+
+        SUBS  r4,r4,#1
+        BNE   findspace_ok0
+
+        MOV   r0,r3,LSR#1   ; Calculate start
+        LDMFD r13!,{r4-r8}
+        MOVS  pc,r14
+
+findspace_fail
+        MOV   r0,#-1
+        LDMFD r13!,{r4-r8}
+        MOVS  pc,r14
+
+;--- Freedata -----------------------------------------------------------------
+; r0 = block (or chain) to unlock        
+freedata
+        STMFD r13!,{r4-r5,r14}
+        MOV   r0,r0,LSL#1
+        LDR   r1,pointer_datamap
+        MOV   r3,#0
+        MOV   r5,#3
+
+        LDR   r2,[r1,r0,LSR#5]
+        AND   r4,r0,#31
+        AND   r3,r2,r5,LSL r4
+
+        CMP   r3,#1              ; Header block?
+        LDMNEFD r13!,{r4-r5,pc}^
+        BIC   r2,r2,r5,LSL r4
+        STR   r2,[r1,r0,LSR#5]   ; Clear bits
+freedata0
+        ADD   r0,r0,#2
+        LDR   r2,[r1,r0,LSR#5]
+        AND   r4,r0,#31
+        AND   r3,r2,r5,LSL r4
+        CMP   r3,#2              ; Data block?
+        LDMNEFD r13!,{r4-r5,pc}^
+
+        BIC   r2,r2,r5,LSL r4
+        STR   r2,[r1,r0,LSR#5]   ; Clear bits
+        BAL   freedata0
+
+;--- Locklookup ---------------------------------------------------------------
+locklookup
+        STMFD r13!,{r4-r5,r14}
+        LDR   r1,pointer_lookupmap
+        MOV   r2,r1
+searchmap_find1
+        LDRB  r3,[r2],#1
+        CMP   r3,#&ff
+        BEQ   searchmap_find1    ; Find clear byte
+
+        SUB   r2,r2,#1
+        SUB   r5,r2,r1
+        MOV   r1,#0
+        MOV   r4,#1
+searchmap_find2
+        TST   r3,r4,LSL r1       
+        BEQ   searchmap_found    ; Found empty bit?
+        ADD   r1,r1,#1
+        B     searchmap_find2
+
+searchmap_found
+        ADD   r0,r1,r5,LSL#3
+        ORR   r3,r3,r4,LSL r1
+        STRB  r3,[r2]
+
+        LDR   r1,last_message
+        CMP   r0,r1
+        STRGT r0,last_message 
+
+        LDMFD r13!,{r4-r5,pc}
+
+;--- Freelookup ---------------------------------------------------------------
+freelookup
+        LDR   r1,pointer_lookupmap
+        AND   r2,r0,#7
+        MOV   r3,#1
+        MOV   r2,r3,LSL r2
+        LDRB  r3,[r1,r0,LSR#3]
+        BIC   r3,r3,r2
+        STRB  r3,[r1,r0,LSR#3]
+
+        MOVS  pc,r14
+
+;--- Lastlookup ---------------------------------------------------------------
+lastlookup
+        STMFD r13!,{r4-r5,r14}
+        LDR   r0,last_message
+        ADD   r0,r0,#1
+        STR   r0,last_message
+        AND   r1,r0,#7
+        MOV   r2,#1
+        MOV   r1,r2,LSL r1
+        LDR   r2,pointer_lookupmap
+        LDRB  r3,[r2,r0,LSR#3]
+        ORR   r3,r3,r1
+        STRB  r3,[r2,r0,LSR#3]
+        ;BL    save_last
+        ;BL    save_lookupmap
+        LDMFD r13!,{r4-r5,pc}^
+
+save_last
+        STMFD r13!,{r0-r5,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        ; Save info file
+        MOV   r0,#10
+        ADRL  r1,name_info
+        MOV   r2,#&d
+        ORR   r2,r2,#&ff0
+        ADRL  r4,last_message
+        ADD   r5,r4,#4
+        SWI   File            
+        LDMFD r13!,{r0-r5,pc}^
+
+;--- GetLastlookup ------------------------------------------------------------
+
+getlastlookup
+        LDR   r0,last_message
+        MOVS  pc,r14
+
+;--- Read area ----------------------------------------------------------------
+; r0=area to read, r1=pointer to area block
+readarea
+        STMFD r13!,{r4-r9,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        CMP   r0,#0
+        BLT   readarea_error
+        CMP   r0,#255
+        BGT   readarea_error
+        LDR   r2,pointer_area
+        ADD   r0,r2,r0,LSL#7         ; 128 bytes/area
+        LDMIA r0!,{r2-r9}
+        STMIA r1!,{r2-r9}            ; 32 byte copy
+        LDMIA r0!,{r2-r9}
+        STMIA r1!,{r2-r9}            ; 32 byte copy
+        LDMIA r0!,{r2-r9}
+        STMIA r1!,{r2-r9}            ; 32 byte copy
+        LDMIA r0!,{r2-r9}
+        STMIA r1!,{r2-r9}            ; 32 byte copy
+readarea_exit
+        LDMFD r13!,{r4-r9,pc}^
+
+readarea_error
+        ORR   r14,r14,#(1:SHL:28)       ; Set V flag
+        B     readarea_exit
+
+;--- Write area ---------------------------------------------------------------
+; r0=area to write, r1=pointer to area block
+writearea
+        STMFD r13!,{r4-r9,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        CMP   r0,#0
+        BLT   writearea_error
+        LDR   r2,length_area
+        MOV   r2,r2,LSR#7            ; Divide by 128
+        CMP   r0,r2
+        BGT   writearea_error
+        LDR   r2,pointer_area
+        ADD   r0,r2,r0,LSL#7         ; 128 bytes/area
+        LDMIA r1!,{r2-r9}
+        STMIA r0!,{r2-r9}            ; 32 byte copy
+        LDMIA r1!,{r2-r9}
+        STMIA r0!,{r2-r9}            ; 32 byte copy
+        LDMIA r1!,{r2-r9}
+        STMIA r0!,{r2-r9}            ; 32 byte copy
+        LDMIA r1!,{r2-r9}
+        STMIA r0!,{r2-r9}            ; 32 byte copy
+
+        ; Save area file
+;        MOV   r0,#10
+;        ADRL  r1,name_mailarea
+;        MOV   r2,#&d
+;        ORR   r2,r2,#&ff0
+;        LDR   r4,pointer_area
+;        LDR   r5,length_area
+;        ADD   r5,r5,r4
+;        SWI   File
+
+writearea_exit
+        LDMFD r13!,{r4-r9,pc}^
+
+writearea_error
+        ORR   r14,r14,#(1:SHL:28)       ; Set V flag
+        B     writearea_exit
+
+;--- Read data ----------------------------------------------------------------
+; r0=block to read, r1=pointer to block
+readdata
+        STMFD r13!,{r4-r5,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r5,r1
+        MOV   r4,r0,LSL#8            ; 256 bytes/block
+        MOV   r2,r1
+        MOV   r0,#3
+        LDR   r1,handle_maildata
+        MOV   r3,#256
+        SWI   (X+GBPB)
+        BLVC  readdata2
+        MOV   r1,#0       ; Blank out if beyond EOF
+        MOV   r2,#0
+        MOV   r3,#0
+        MOV   r4,#0
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+readdata2
+        MOVVS r0,#-1
+        MOVVC r0,#0
+        LDMFD r13!,{r4-r5,pc}^
+
+;--- Write data ---------------------------------------------------------------
+; r0=block to write, r1=pointer to block
+writedata
+        STMFD r13!,{r4,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r4,r0,LSL#8            ; 256 bytes/block
+        MOV   r2,r1
+        MOV   r0,#1
+        LDR   r1,handle_maildata
+        MOV   r3,#256
+        SWI   (X+GBPB)
+        MOVVS r0,#-1
+        MOVVC r0,#0
+        LDMFD r13!,{r4,pc}^
+
+;--- Read lookup --------------------------------------------------------------
+; r0=block to read, r1=pointer to block
+readlookup
+        STMFD r13!,{r4-r5,r14}  
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r5,r1
+        MOV   r4,r0,LSL#8            ; 256 bytes/block
+        MOV   r2,r1
+        MOV   r0,#3
+        LDR   r1,handle_maillookup
+        MOV   r3,#256
+        SWI   (X+GBPB)
+        BLVC  readlkup2
+        MOV   r1,#0       ; Blank out if beyond EOF
+        MOV   r2,#0
+        MOV   r3,#0
+        MOV   r4,#0
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+        STMIA r5!,{r1-r4}
+readlkup2
+        MOVVS r0,#-1
+        MOVVC r0,#0
+        LDMFD r13!,{r4-r5,pc}^
+
+;--- Write lookup -------------------------------------------------------------
+; r0=block to write, r1=pointer to block
+writelookup
+        STMFD r13!,{r4,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r4,r0,LSL#8            ; 256 bytes/block
+        MOV   r2,r1
+        MOV   r0,#1
+        LDR   r1,handle_maillookup
+        MOV   r3,#256
+        SWI   (X+GBPB)
+        MOVVS r0,#-1
+        MOVVC r0,#0
+        LDMFD r13!,{r4,pc}^
+
+;--- Get last area number -----------------------------------------------------
+lastarea
+        LDR   r0,length_area
+        MOV   r0,r0,LSR#7
+        MOVS  pc,r14
+
+;--- Save all data ------------------------------------------------------------
+saveall
+        STMFD r13!,{r14}
+        BL    saveall_mail
+        BL    saveall_user
+        LDMFD r13!,{pc}^
+
+;--- Security save every 10 writes --------------------------------------------
+saveall_mail
+        STMFD r13!,{r0-r5,r14}
+        BL    savemaps
+        BL    ensurelookup
+        BL    ensuredata
+        LDMFD r13!,{r0-r5,pc}^
+
+saveall_user
+        STMFD r13!,{r14}
+        BL    ensureuser
+        LDMFD r13!,{pc}^
+
+;--- Read user data -----------------------------------------------------------
+; r0=block to read, r1=pointer to block
+readuserdata
+        STMFD r13!,{r4,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r4,r0,LSL#9            ; 512 bytes/block
+        MOV   r2,r1
+        MOV   r0,#3
+        LDR   r1,handle_userdata
+        MOV   r3,#512
+        SWI   (X+GBPB)
+        MOVVS r0,#-1
+        MOVVC r0,#0
+        LDMFD r13!,{r4,pc}^
+
+;--- Write user data ----------------------------------------------------------
+; r0=block to write, r1=pointer to block
+writeuserdata
+        STMFD r13!,{r4,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r4,r0,LSL#9            ; 512 bytes/block
+        MOV   r2,r1
+        MOV   r0,#1
+        LDR   r1,handle_userdata
+        MOV   r3,#512
+        SWI   (X+GBPB)
+        MOVVS r0,#-1
+        MOVVC r0,#0
+        BL    security_user
+        LDMFD r13!,{r4,pc}^
+
+;--- Read user lookup ---------------------------------------------------------
+; r0=block to read, r1=pointer to block
+readuserlookup
+        STMFD r13!,{r4,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r4,r0,LSL#6            ; 64 bytes/block
+        MOV   r2,r1
+        MOV   r0,#3
+        LDR   r1,handle_userlookup
+        MOV   r3,#64
+        SWI   (X+GBPB)
+        MOVVS r0,#-1
+        MOVVC r0,#0
+        LDMFD r13!,{r4,pc}^
+
+;--- Write user lookup --------------------------------------------------------
+; r0=block to write, r1=pointer to block
+writeuserlookup
+        STMFD r13!,{r4,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r4,r0,LSL#6            ; 64 bytes/block
+        MOV   r2,r1
+        MOV   r0,#1
+        LDR   r1,handle_userlookup
+        MOV   r3,#64
+        SWI   (X+GBPB)
+        MOVVS r0,#-1
+        MOVVC r0,#0
+        BL    security_user
+        LDMFD r13!,{r4,pc}^
+
+;--- Read user extent ---------------------------------------------------------
+extentuser
+        STMFD r13!,{r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r0,#2
+        LDR   r1,handle_userdata
+        SWI   Args
+        MOV   r0,r2,LSR#9
+        LDMFD r13!,{pc}^
+                         
+;--- Read max users -----------------------------------------------------------
+readmaxuser
+        LDR   r0,maxuser
+        MOVS  pc,r14
+
+;--- Read pointer to statuslist -----------------------------------------------
+getstatuspointer
+        LDR   r0,pointer_status
+        MOVS  pc,r14
+
+;--- Open/close all files -----------------------------------------------------
+openatpresent
+        DCD   1
+
+openall
+        STMFD r13!,{r0,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        LDR   r0,openatpresent
+        CMP   r0,#0
+        LDMNEFD r13!,{r0,pc}^
+        BL    openmailfiles
+        BL    openuserfiles
+        MOV   r0,#1
+        STR   r0,openatpresent
+        LDMFD r13!,{r0,pc}^
+
+closeall
+        STMFD r13!,{r0,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        LDR   r0,openatpresent
+        CMP   r0,#0
+        LDMEQFD r13!,{r0,pc}^
+        BL    closemailfiles
+        BL    closeuserfiles
+        MOV   r0,#0
+        STR   r0,openatpresent
+        LDMFD r13!,{r0,pc}^
+
+;--- Increment call count -----------------------------------------------------
+inccallcount
+        LDR   r0,callcount
+        ADD   r0,r0,#1
+        STR   r0,callcount
+        MOVS  pc,r14
+
+;--- Read call count ----------------------------------------------------------
+readcallcount
+        LDR   r0,callcount
+        MOVS  pc,r14
+
+;--- Get unique filenumber ----------------------------------------------------
+filenumber
+        STMFD r13!,{r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        LDR   r0,lastfile
+        ADD   r0,r0,#1
+        STR   r0,lastfile
+        BL    save_callcount
+        LDMFD r13!,{pc}^
+
+;--- Get max filenumber -------------------------------------------------------
+readfilenumber
+        LDR   r0,lastfile
+        MOVS  pc,r14
+
+;--- Clear flag ---------------------------------------------------------------
+clearflag
+        MOV   r0,#0
+        STR   r0,nocrash
+        MOVS  pc,r14
+
+;--- Return address of lookup map ---------------------------------------------
+returnlkmap
+        LDR   r0,pointer_lookupmap
+        MOVS  pc,r14
+
+;--- Return address of data map -----------------------------------------------
+returndamap
+        LDR   r0,pointer_datamap
+        MOVS  pc,r14
+
+;--- Return length of lookup map ----------------------------------------------
+returnlengthlk
+        LDR   r0,length_lookupmap
+        MOVS  pc,r14
+
+;--- Return length of data map ------------------------------------------------
+returnlengthda
+        LDR   r0,length_datamap
+        MOVS  pc,r14
+
+;--- Return extent of data file -----------------------------------------------
+dataext
+        STMFD r13!,{r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r0,#2
+        LDR   r1,handle_maildata
+        SWI   Args
+        MOV   r0,r2,LSR#8
+        LDMFD r13!,{pc}^
+
+;--- Return extent of lookup file ---------------------------------------------
+lookupext
+        STMFD r13!,{r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r0,#2
+        LDR   r1,handle_maillookup
+        SWI   Args
+        MOV   r0,r2,LSR#8
+        LDMFD r13!,{pc}^
+
+;--- Ensure lookup/data/user files --------------------------------------------
+ensurelookup
+        STMFD r13!,{r0-r2,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r0,#255
+        LDR   r1,handle_maillookup
+        SWI   Args
+        LDMFD r13!,{r0-r2,pc}^
+
+ensuredata
+        STMFD r13!,{r0-r2,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r0,#255
+        LDR   r1,handle_maildata
+        SWI   Args
+        LDMFD r13!,{r0-r2,pc}^
+
+ensureuser
+        STMFD r13!,{r0-r2,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r0,#255
+        LDR   r1,handle_userdata
+        SWI   Args
+        MOV   r0,#255
+        LDR   r1,handle_userlookup
+        SWI   Args
+        LDMFD r13!,{r0-r2,pc}^
+                                
+;--- Save map files -----------------------------------------------------------
+savemaps
+        STMFD r13!,{r0-r5,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        BL    save_lookupmap
+        BL    save_datamap
+        BL    save_last
+
+        ; Save area file
+        MOV   r0,#10
+        ADRL  r1,name_mailarea
+        MOV   r2,#&d
+        ORR   r2,r2,#&ff0
+        LDR   r4,pointer_area
+        LDR   r5,length_area
+        ADD   r5,r5,r4
+        SWI   File
+        LDMFD r13!,{r0-r5,pc}^
+
+
+;--- Read data ----------------------------------------------------------------
+; r0=byte pos to read, r1=length, r2=pointer to buffer
+readdatablock
+        STMFD r13!,{r4-r5,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r5,r2
+        MOV   r4,r0
+        MOV   r3,r1
+        LDR   r1,handle_maildata
+        MOV   r0,#3
+        SWI   (X+GBPB)
+        MOVVC r0,#0
+        LDMVCFD r13!,{r4-r5,pc}^
+        MOV   r1,#0       ; Blank out if beyond EOF
+        STR   r1,[r5],#4
+        STR   r1,[r5],#4
+        STR   r1,[r5],#4
+        MOV   r0,#-1
+        LDMFD r13!,{r4-r5,pc}^
+
+;--- Write data ---------------------------------------------------------------
+; r0=byte pos to write, r1=length, r2=pointer to buffer
+writedatablock
+        STMFD r13!,{r4,r14}
+        MVN   r14,#&8000000
+        TSTP  r14,pc
+        MOV   r0,r0
+
+        MOV   r4,r0
+        MOV   r3,r1
+        LDR   r1,handle_maildata
+        MOV   r0,#1
+        SWI   (X+GBPB)
+        MOVVS r0,#-1
+        MOVVC r0,#0
+        LDMFD r13!,{r4,pc}^
+
+;--- Security save every 10 writes --------------------------------------------
+sec_mailcount
+        DCD   0
+        
+sec_usercount
+        DCD   0
+
+security_mail
+        STMFD r13!,{r0,r14}
+        LDR   r0,sec_mailcount
+        ADD   r0,r0,#1
+        CMP   r0,#10
+        MOVEQ r0,#0
+        STR   r0,sec_mailcount
+        BLEQ  saveall_mail
+        LDMFD r13!,{r0,pc}^
+
+security_user
+        STMFD r13!,{r0,r14}
+        LDR   r0,sec_usercount
+        ADD   r0,r0,#1
+        CMP   r0,#10
+        MOVEQ r0,#0
+        STR   r0,sec_usercount
+        BLEQ  saveall_user
+        LDMFD r13!,{r0,pc}^
+
+;--- The end! -----------------------------------------------------------------
+
+        END

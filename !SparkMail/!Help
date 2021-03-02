@@ -1,0 +1,104 @@
+
+!SparkMail 1.12                                           16-December-1992
+---------------                                           ----------------
+
+© 1990/1991/1992 Hugo Fiennes
+This program is PUBLIC DOMAIN
+
+Concept:
+
+  !SparkMail provides a simple ARCmail packer in conjunction with !SparkFS.
+  Outbound packet(s) are added to archives with PC-style packet names for
+  sending the ARCmail to other systems.
+
+  A file attach is automatically generated with the same hold status (ie
+  xxxxyyyyHO will be generated if xxxxyyyyHT was the packet arc'ed).
+
+Use:
+
+  !SparkMail MUST be used within the desktop environment. !SparkFS must be
+  loaded. Normal use will be from obey files, which call it like this:
+
+  !SparkMail <our address> <outbound address> [compression type]
+
+  for example, to produce ARCmail for Noah (2:252/106.0) from Cryton
+  (2:252/102.0) with PC format crunching, I use:
+
+  !SparkMail 2:252/102.0 2:252/106.0 arc
+
+  If no compression type is set then the default 'arc' is used. Other
+  compression types supported are 'zip' (PKZIP format), 'compress'
+  (SparkFS compress - number of bits set with SparkFS setup) and 'tar'
+  (normal tarfile). Alternatively, you can specify the numeric compression
+  method to be passed to SparkFS with the SparkFScreate command.
+
+  Return codes are set accoring to what has been done:
+
+  SparkMail$Return  = 0       Normal termination, data was added to arc
+  SparkMail$Return  = 1       Normal termination, no data to add to arc
+  SparkMail$Return  = 2       Error in command line
+
+  The file attach files have a '^' as the first character on the line,
+  indicating that the file should be deleted when sent sucessfully
+  by Binkleyterm.
+
+Updates:
+
+  1.00  1-Nov-1990 First version
+  1.01  1-Nov-1990 Resets Spark to archie style Archives after arcing mail,
+                   also checks DES and garble are off.
+                   Checks end of Archive for PC arc terminator (0 as
+                   opposed to 128) just in case - some versions of Spark
+                   did this sometimes.
+  1.02  1-Nov-1990 Outbound mail (xxxxyyyyOT) had a file attach of
+                   xxxxyyyyOO generated (oops!). It now generates
+                   xxxxyyyyFO.
+  1.03  5-Nov-1990 Spark barfs at something occasionally (maybe the -I on
+                   its own to reset to Archie archives, this has been
+                   changed to -v -I <arcname> to get it to do something,
+                   otherwise sometimes there is a problem with inbound
+                   mail getting trashed before import! Not sure if this
+                   fixes it, the problem has only occurred once here,
+                   and I wasn't there to see it!
+  1.04  6-Nov-1990 Oops! major problem with 1.03... it didn't generate
+                   packets at all <blush> ... well it did, and they
+                   were called '-i'...
+  1.05 30-Jan-1991 File attach file tweaked: instead of generating a new
+                   file, SparkMail appends the filename to the end of
+                   an existing file attach file, but only if the ARC
+                   didn't exist beforehand (ie if the ARC already existed,
+                   SparkMail assumes that it was in the file attach
+                   file).
+  1.06 21-Oct-1991 Now forces crunch format (with -v) to ensure PC
+                   compatiblity whatever Spark is currently set to.
+                   If file is already listed in the File-attach file
+                   it isn't added again.
+  1.07 30-Nov-1991 You can now pass flags to Spark. Will wait for Spark
+                   if it's busy.
+  1.08 09-Jan-1992 More tweaks to try to ensure spark is in correct
+                   archiving mode.
+  1.09 19-Nov-1992 4d point support added.
+  1.10 01-Dec-1992 4d point support now works :-)
+  1.11 08-Dec-1992 4d Arcmail packets now have 8 digits M1 as opposed to
+                   4 digits M1 as otherwise bink doesn't recognise it as
+                   arcmail, and also it won't get recognised as arcmail
+                   at the other end either.
+  1.12 16-Dec-1992 Converted to work with SparkFS.
+
+Other:
+
+  Send any comments or suggestions to:
+
+  Hugo Fiennes
+  Burcott Manor
+  Wells
+  Somerset
+  BA5 1NH
+
+  Fidonet: Hugo Fiennes of 2:252/102@fidonet
+  Email  : altman@cix.compulink.co.uk or
+           altman@cryton.demon.co.uk
+  Data   : (0749) 679794/670030/670883
+  Voice  : (0749) 670058/672234
+           (0831) 450011
+  Fax    : (0749) 670809

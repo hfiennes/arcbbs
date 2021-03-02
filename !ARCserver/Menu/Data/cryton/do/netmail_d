@@ -1,0 +1,7 @@
+ECHO "{cls bfgbg wb}  ___       __   __{eol |}" 
+ECHO "   |  \/\/ (__) (__                                              {fg c}Write NetMail{eol |}"
+ECHO "{eol std |}"  
+WRITE F 2:258/24.0
+ECHO "{_>0023 bfgbg wb}                                Press any key{eol std}"
+ANYKEY
+GOTO netmail

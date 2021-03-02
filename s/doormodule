@@ -1,0 +1,625 @@
+;                    _____________________________________________
+;                  [>                                             <]
+;Project           [> ARCbbs                                      <]
+;Author            [> Hugo Fiennes                                <]
+;Date started      [> 31-December-1991                            <]
+;                  [>                                             <]
+;Module name       [> Door interface module                       <]
+;Current version   [> 00.04                                       <]
+;Version date      [> 08-January-1992                             <]
+;State             [> Unfinished                                  <]
+;                  [>                                             <]
+;                  [>  This source is COPYRIGHT (c) 1991/1992 by  <]
+;                  [>      Hugo Fiennes of The Serial Port        <]
+;                  [>_____________________________________________<]
+
+; SWI values
+
+WriteC        * &00
+CLI           * &05
+Byte          * &06
+SerialOp      * &57
+Find          * &0d
+File          * &08
+Module        * &1e
+GBPB          * &0c
+Args          * &09
+IntOn         * &13
+IntOff        * &14
+
+V_Bit         * (1:SHL:28)
+C_Bit         * (1:SHL:29)
+
+r0 RN 0
+r1 RN 1
+r2 RN 2
+r3 RN 3
+r4 RN 4
+r5 RN 5
+r6 RN 6
+r7 RN 7
+r8 RN 8
+r9 RN 9
+r10 RN 10
+r11 RN 11
+r12 RN 12
+r13 RN 13
+r14 RN 14
+pc RN 15
+
+X             * &00020000 ; mask to make a swi a RISC OS v-error swi
+
+;--- Module header ------------------------------------------------------------
+
+startmodule
+        DCD  0                       ; No start code
+        DCD  (init-startmodule)      ; Initialise opens files
+        DCD  (final-startmodule)     ; Finalise closes files
+        DCD  0                       ; No service call handler
+        DCD  (title-startmodule)     ; Title of module
+        DCD  (help-startmodule)      ; Help text for module
+        DCD  0                       ; No commands
+        DCD  &41040                  ; SWI base
+        DCD  (swih-startmodule)      ; SWI handler
+        DCD  (swinames-startmodule)  ; SWI names
+        DCD  0                       ; No decoding code
+
+title
+        = "ARCbbs_Doors",0
+
+help
+        = "ARCbbs Doors",9,"0.04 (08 Jan 1992) © Hugo Fiennes",0
+
+        ALIGN
+
+;--- Pointers to areas --------------------------------------------------------
+
+pointer_requestblocks
+        DCD   0
+
+pointer_inputbuffers
+        DCD   0
+
+pointer_outputbuffers
+        DCD   0
+
+pointer_linestatus
+        DCD   0
+
+;--- Initialise module --------------------------------------------------------
+
+init
+        STMFD r13!,{r1-r9,r14}
+
+        MOV   r0,#0
+        STR   r0,pointer_linestatus
+        STR   r0,pointer_requestblocks
+        STR   r0,pointer_inputbuffers
+        STR   r0,pointer_outputbuffers
+
+        ; Allocate memory for line status
+        MOV   r0,#6
+        MOV   r3,#(16*32)
+        SWI   X+Module
+        BVS   init_error
+        STR   r2,pointer_linestatus
+
+        ; Allocate memory for request blocks
+        MOV   r0,#6
+        MOV   r3,#(256*16)
+        SWI   X+Module
+        BVS   init_error
+        STR   r2,pointer_requestblocks
+
+        ; Allocate memory for input (slave) buffers
+        MOV   r0,#6
+        MOV   r3,#(1024*16)
+        SWI   X+Module
+        BVS   init_error
+        STR   r2,pointer_inputbuffers
+
+        ; Allocate memory for input (slave) buffers
+        MOV   r0,#6
+        MOV   r3,#(1024*16)
+        SWI   X+Module
+        BVS   init_error
+        STR   r2,pointer_outputbuffers
+
+        ; Clear out line status block
+        MOV   r0,#0
+        LDR   r1,pointer_linestatus
+        MOV   r2,#128
+init_l
+        STR   r0,[r1],#4
+        SUBS  r2,r2,#1
+        BNE   init_l
+
+        ; Return
+        LDMFD r13!,{r1-r9,pc}
+
+init_error
+        LDR   r2,pointer_linestatus
+        CMP   r2,#0
+        MOVNE r0,#7
+        SWINE X+Module
+
+        LDR   r2,pointer_requestblocks
+        CMP   r2,#0
+        MOVNE r0,#7
+        SWINE X+Module
+
+        LDR   r2,pointer_inputbuffers
+        CMP   r2,#0
+        MOVNE r0,#7
+        SWINE X+Module
+
+        LDR   r2,pointer_outputbuffers
+        CMP   r2,#0
+        MOVNE r0,#7
+        SWINE X+Module
+
+        ADR   r0,init_errormsg
+
+        LDMFD r13!,{r1-r9,r14}
+        ORRS  pc,r14,#V_Bit
+
+init_errormsg
+        = "Can't get memory for buffers",0
+        ALIGN
+
+;--- Finalise code ------------------------------------------------------------
+
+final
+        STMFD r13!,{r0-r9,r14}
+
+        LDR   r2,pointer_linestatus
+        CMP   r2,#0
+        MOVNE r0,#7
+        SWINE X+Module
+
+        LDR   r2,pointer_requestblocks
+        CMP   r2,#0
+        MOVNE r0,#7
+        SWINE X+Module
+
+        LDR   r2,pointer_inputbuffers
+        CMP   r2,#0
+        MOVNE r0,#7
+        SWINE X+Module
+
+        LDR   r2,pointer_outputbuffers
+        CMP   r2,#0
+        MOVNE r0,#7
+        SWINE X+Module
+
+        LDMFD r13!,{r0-r9,pc}
+
+;--- SWI handler --------------------------------------------------------------
+
+swih
+        CMP   r11,#((endoftable-table)/4)
+        ADDCC pc,pc,r11,LSL#2
+        B     unknownswi
+
+table
+        B     readstatus
+        B     writestatus
+
+        B     sendrequest
+        B     getreply
+        B     getrequest
+        B     sendreply
+
+        B     inputstatus
+        B     inputread
+        B     outputstatus
+        B     outputwrite
+
+        B     clearinput
+        B     clearoutput
+
+        B     inputwrite
+        B     outputread
+
+        B     resetstate
+
+endoftable
+
+unknownswi
+        LDMFD r13!,{r0,r14}
+        ADRL  r0,errmsg
+        ORRS  pc,r14,#(1:SHL:28)
+
+errmsg
+        DCD  &1e6
+        =     "Unknown ARCbbs_Doors operation",0
+
+;--- SWI name decode table ----------------------------------------------------
+
+swinames
+        = "ARCbbsDoors",0     ; Group prefix
+
+        ; Overall line status
+        = "ReadStatus",0
+        = "WriteStatus",0
+
+        ; Request/reply protocol
+        = "SendRequest",0
+        = "GetReply",0
+        = "GetRequest",0
+        = "SendReply",0
+
+        ; Input/output buffers (slave end)
+        = "InputStatus",0
+        = "InputRead",0
+        = "OutputStatus",0
+        = "OutputWrite",0
+        = "ClearInput",0
+        = "ClearOutput",0
+
+        ; Input/output buffers (host end)
+        = "InputWrite",0
+        = "OutputRead",0
+
+        ; Reset request/reply protocol
+        = "ResetState",0
+        = 0
+
+;--- Actual functions ---------------------------------------------------------
+
+;
+; Read status
+;
+; in  r0 - Line number
+; out r0 - Line status word
+;
+readstatus
+        CMP   r0,#15
+        MOVGT r0,#0
+        MOVGT pc,r14
+        STMFD r13!,{r1,r14}
+        LDR   r1,pointer_linestatus
+        ADD   r1,r1,#1
+        LDRB  r0,[r1,r0,LSL#5]
+        LDMFD r13!,{r1,pc}
+
+;
+; Write status
+;
+; in  r0 - Line number
+;     r1 - Line status word
+;
+writestatus
+        STMFD r13!,{r0-r2,r14}
+        LDR   r2,pointer_linestatus
+        ADD   r2,r2,#1
+        STRB  r1,[r2,r0,LSL#5]
+        LDMFD r13!,{r0-r2,pc}
+
+;
+; Send request
+;
+; in  r0 - line number
+;     r1 - pointer to request block
+;
+sendrequest
+        STMFD r13!,{r0-r4,r14}
+        LDR   r2,pointer_requestblocks
+        ADD   r2,r2,r0,LSL#8
+
+        ; Copy request into request block
+        MOV   r3,#64
+sendrequest_0
+        LDR   r4,[r1],#4
+        STR   r4,[r2],#4
+        SUBS  r3,r3,#1
+        BNE   sendrequest_0
+
+        ; Set 'request pending' flag
+        LDR   r2,pointer_linestatus
+        MOV   r1,#1
+        STRB  r1,[r2,r0,LSL#5]
+
+        LDMFD r13!,{r0-r4,pc}
+
+;
+; Get reply
+;
+; in  r0 - line number
+;     r1 - pointer to where reply is to be stored
+; out r0 - If no reply yet -1 (C_Bit set)
+;          Otherwise 0 (C_Bit clear)
+;
+getreply
+        STMFD r13!,{r1-r4,r14} 
+
+        ; See if reply is pending
+        LDR   r2,pointer_linestatus
+        LDRB  r2,[r2,r0,LSL#5]
+        CMP   r2,#2
+        BEQ   getreply_0
+        MOV   r0,#-1
+        LDMFD r13!,{r1-r4,r14}
+        ORRS  pc,r14,#C_Bit
+
+        ; Copy the reply out of the block
+getreply_0
+        MOV   r3,#64
+        LDR   r2,pointer_requestblocks
+        ADD   r2,r2,r0,LSL#8
+getreply_0a
+        LDR   r4,[r2],#4
+        STR   r4,[r1],#4
+        SUBS  r3,r3,#1
+        BNE   getreply_0a
+
+        ; Set 'all clear' flag
+        LDR   r2,pointer_linestatus
+        MOV   r1,#0
+        STRB  r1,[r2,r0,LSL#5]
+
+        MOV   r0,#0
+        LDMFD r13!,{r1-r4,r14}
+        BICS  pc,r14,#C_Bit
+
+;
+; Get request
+;
+; in  r0 - line number
+;     r1 - pointer to where request is to be stored
+; out r0 - If no request yet -1 (C_Bit set)
+;          Otherwise 0 (C_Bit clear)
+;
+getrequest
+        STMFD r13!,{r1-r4,r14} 
+
+        ; See if request is pending
+        LDR   r2,pointer_linestatus
+        LDRB  r2,[r2,r0,LSL#5]
+        CMP   r2,#1
+        BEQ   getrequest_0
+        MOV   r0,#-1
+        LDMFD r13!,{r1-r4,r14}
+        ORRS  pc,r14,#C_Bit
+
+        ; Copy the request out of the block
+getrequest_0
+        MOV   r3,#64
+        LDR   r2,pointer_requestblocks
+        ADD   r2,r2,r0,LSL#8
+getrequest_0a
+        LDR   r4,[r2],#4
+        STR   r4,[r1],#4
+        SUBS  r3,r3,#1
+        BNE   getrequest_0a
+
+        MOV   r0,#0
+        LDMFD r13!,{r1-r4,r14}
+        BICS  pc,r14,#C_Bit
+
+;
+; Send reply
+;
+; in  r0 - line number
+;     r1 - pointer to reply block
+;
+sendreply
+        STMFD r13!,{r0-r4,r14}
+        LDR   r2,pointer_requestblocks
+        ADD   r2,r2,r0,LSL#8
+
+        ; Copy reply into request block
+        MOV   r3,#64
+sendreply_0
+        LDR   r4,[r1],#4
+        STR   r4,[r2],#4
+        SUBS  r3,r3,#1
+        BNE   sendreply_0
+
+        ; Set 'reply pending' flag
+        LDR   r2,pointer_linestatus
+        MOV   r1,#2
+        STRB  r1,[r2,r0,LSL#5]
+
+        LDMFD r13!,{r0-r4,pc}
+
+;
+; Input status
+;
+; in  r0 - line number
+; out r0 - bytes waiting
+;
+inputstatus
+        STMFD r13!,{r1,r14}
+        LDR   r1,pointer_linestatus
+        ADD   r1,r1,r0,LSL#5
+        LDR   r0,[r1,#4]
+        LDMFD r13!,{r1,pc}
+
+;
+; Input read
+;
+; in  r0 - line number
+; out r0 - next byte or -1 if no bytes
+;
+inputread
+        STMFD r13!,{r1-r3,r14}
+
+        ; Check there is stuff there
+        LDR   r1,pointer_linestatus
+        ADD   r1,r1,r0,LSL#5
+        LDR   r2,[r1,#4]
+        CMP   r2,#0
+        MOVEQ r0,#-1
+        LDMEQFD r13!,{r1-r3,pc}
+
+        ; Take one off buffer count
+        SUB   r2,r2,#1
+        STR   r2,[r1,#4]
+
+        ; Get data and increment tail
+        LDR   r3,pointer_inputbuffers
+        ADD   r3,r3,r0,LSL#10
+        LDR   r2,[r1,#12]
+        LDRB  r0,[r3,r2]
+        ADD   r2,r2,#1
+        BIC   r2,r2,#1024
+        STR   r2,[r1,#12]
+
+        LDMFD r13!,{r1-r3,pc}
+
+;
+; Output status
+;
+; in  r0 - line number
+; out r0 - bytes free
+;
+outputstatus
+        STMFD r13!,{r1,r14}
+        LDR   r1,pointer_linestatus
+        ADD   r1,r1,r0,LSL#5
+        LDR   r0,[r1,#16]
+        LDMFD r13!,{r1,pc}
+
+;
+; Output write
+;
+; in  r0 - line number
+;     r1 - byte to be inserted
+;
+outputwrite
+        STMFD r13!,{r0-r4,r14}
+
+        ; Check there is room there
+        LDR   r3,pointer_linestatus
+        ADD   r3,r3,r0,LSL#5
+        LDR   r2,[r3,#16]
+        CMP   r2,#0
+        LDMEQFD r13!,{r0-r4,pc}
+
+        ; Take one off buffer freecount
+        SUB   r2,r2,#1
+        STR   r2,[r3,#16]
+
+        ; Put data and increment head
+        LDR   r4,pointer_outputbuffers
+        ADD   r4,r4,r0,LSL#10
+        LDR   r2,[r3,#20]
+        STRB  r1,[r4,r2]
+        ADD   r2,r2,#1
+        BIC   r2,r2,#1024
+        STR   r2,[r3,#20]
+
+        LDMFD r13!,{r0-r4,pc}
+
+;
+; Clear input
+;
+; in  r0 - line number
+;
+clearinput
+        STMFD r13!,{r0-r1,r14}
+        LDR   r1,pointer_linestatus
+        ADD   r1,r1,r0,LSL#5
+        
+        MOV   r0,#0
+        STR   r0,[r1,#4]
+        STR   r0,[r1,#8]
+        STR   r0,[r1,#12]
+        LDMFD r13!,{r0-r1,pc}
+
+;
+; Clear output
+;
+; in  r0 - line number
+;
+clearoutput
+        STMFD r13!,{r0-r1,r14}
+        LDR   r1,pointer_linestatus
+        ADD   r1,r1,r0,LSL#5
+        
+        MOV   r0,#1024
+        STR   r0,[r1,#16]
+        MOV   r0,#0
+        STR   r0,[r1,#20]
+        STR   r0,[r1,#24]
+        LDMFD r13!,{r0-r1,pc}
+
+;
+; Input write
+;
+; in  r0 - line number
+;     r1 - byte to be inserted
+;
+inputwrite
+        STMFD r13!,{r0-r4,r14}
+
+        ; Check there is room there
+        LDR   r3,pointer_linestatus
+        ADD   r3,r3,r0,LSL#5
+        LDR   r2,[r3,#4]
+        CMP   r2,#1024
+        LDMGEFD r13!,{r0-r4,pc}
+
+        ; Add one to buffer count
+        ADD   r2,r2,#1
+        STR   r2,[r3,#4]
+
+        ; Put data and increment head
+        LDR   r4,pointer_inputbuffers
+        ADD   r4,r4,r0,LSL#10
+        LDR   r2,[r3,#8]
+        STRB  r1,[r4,r2]
+        ADD   r2,r2,#1
+        BIC   r2,r2,#1024
+        STR   r2,[r3,#8]
+
+        LDMFD r13!,{r0-r4,pc}
+
+;
+; Output read
+;
+; in  r0 - line number
+; out r0 - next byte or -1 if no bytes
+;
+outputread
+        STMFD r13!,{r1-r3,r14}
+
+        ; Check there is stuff there
+        LDR   r1,pointer_linestatus
+        ADD   r1,r1,r0,LSL#5
+        LDR   r2,[r1,#16]
+        CMP   r2,#1024
+        MOVEQ r0,#-1
+        LDMEQFD r13!,{r1-r3,pc}
+
+        ; Add one to buffer freecount
+        ADD   r2,r2,#1
+        STR   r2,[r1,#16]
+
+        ; Get data and increment tail
+        LDR   r3,pointer_outputbuffers
+        ADD   r3,r3,r0,LSL#10
+        LDR   r2,[r1,#24]
+        LDRB  r0,[r3,r2]
+        ADD   r2,r2,#1
+        BIC   r2,r2,#1024
+        STR   r2,[r1,#24]
+
+        LDMFD r13!,{r1-r3,pc}
+
+;
+; Reset state
+;
+; in  r0 - line number
+;
+resetstate
+        STMFD r13!,{r0-r2,r14}
+        LDR   r2,pointer_linestatus
+        MOV   r1,#0
+        STRB  r1,[r2,r0,LSL#5]
+        LDMFD r13!,{r0-r2,pc}
+
+;--- The end! -----------------------------------------------------------------
+
+        END

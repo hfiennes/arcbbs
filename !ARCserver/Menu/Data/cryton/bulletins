@@ -1,0 +1,15 @@
+| Bulletins
+DOING "Bulletins"
+PROMPT "{bfgbg wb} Bulletins {fgbg rw} Command {bg n} "
+|
+M,Main menu,GOTO mainmenu
+0,System information,GOTO do.b0
+1,Software information,GOTO do.b1
+2,Other ARCbbs boards,GOTO do.b2
+3,Coming soon!,GOTO do.b3
+4,Netwerk info,GOTO do.b4
+5,Upload format,GOTO do.b5
+6,QD logo,GOTO do.b7
+X,Expert/novice,TOGFLAGS U3
+/,,GOTO slash./
+|

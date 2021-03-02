@@ -1,0 +1,7 @@
+;
+; File area flag names
+;
+;#  Flag name
+;-  --------------------
+0   very_private
+1   private

@@ -1,0 +1,366 @@
+;                    _____________________________________________
+;                  [>                                             <]
+;Project           [> ARCterm 7                                   <]
+;Author            [> Hugo Fiennes                                <]
+;Date started      [> 17-August-1990                              <]
+;                  [>                                             <]
+;Module name       [> Scrolling terminals (2)                     <]
+;Current version   [> 00.07                                       <]
+;Version date      [> 15-December-1991                            <]
+;State             [> Unfinished                                  <]
+;                  [>                                             <]
+;                  [>  This source is COPYRIGHT (c) 1990/1991 by  <]
+;                  [>       Hugo Fiennes of The Serial Port       <]
+;                  [>_____________________________________________<]
+
+; ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+; Register names   Modified for new call standard (GOD acorn, I wish you'd
+;                  stop changing your mind...)
+; ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+a1 RN 0
+a2 RN 1
+a3 RN 2
+a4 RN 3
+v1 RN 4
+v2 RN 5
+v3 RN 6
+v4 RN 7
+v5 RN 8
+v6 RN 9
+sl RN 10
+fp RN 11
+ip RN 12
+sp RN 13
+lk RN 14
+pc RN 15
+       
+; Variable for loops
+ GBLA   l
+
+ AREA |C$$code|, CODE, READONLY
+     
+; Scroll up (sprite)
+
+tempsp
+    DCD 0
+templk
+    DCD 0    
+     
+    EXPORT scr_up
+scr_up
+    STR    sp,tempsp
+    STR    lk,templk
+    MOVEQ  sp,#20
+    MOVNE  sp,#33
+scr_upl
+l   SETA   69
+    WHILE  l>0
+    LDMIA  fp!,{a1-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a1-a4,v1-v6,ip,lk}
+l   SETA   l-1
+    WEND
+    SUBS   sp,sp,#1
+    BNE    scr_upl
+    LDR    sp,tempsp
+    LDR    pc,templk
+
+tempsp2
+    DCD 0
+templk2
+    DCD 0    
+
+    EXPORT scr_down
+scr_down
+    STR    sp,tempsp2
+    STR    lk,templk2
+    MOVEQ  sp,#20
+    MOVNE  sp,#33
+scr_dll
+l   SETA   69
+    WHILE  l>0
+    LDMDB  fp!,{a1-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a1-a4,v1-v6,ip,lk}
+l   SETA   l-1
+    WEND
+    SUBS   sp,sp,#1
+    BNE    scr_dll
+    LDR    sp,tempsp2
+    LDR    pc,templk2
+
+;--- Routines for partial screen scroll ---------------------------------------
+
+tempsp3
+    DCD 0
+templk3
+    DCD 0    
+
+    EXPORT scr_partup
+scr_partup
+    BNE    scr_partup132
+    STR    sp,tempsp3
+    STR    lk,templk3
+    MOV    sp,a2,LSL#1
+scr_partupl
+l   SETA   30
+    WHILE  l>0
+    LDMIA  fp!,{a1-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a1-a4,v1-v6,ip,lk}
+l   SETA   l-1
+    WEND
+    SUBS   sp,sp,#1
+    BNE    scr_partupl
+    LDR    sp,tempsp3
+    LDR    pc,templk3
+
+tempsp3a
+    DCD 0
+templk3a
+    DCD 0
+
+scr_partup132
+    STR    sp,tempsp3a
+    STR    lk,templk3a
+    MOV    sp,a2,LSL#1
+scr_partupl132
+l   SETA   49
+    WHILE  l>0
+    LDMIA  fp!,{a1-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a1-a4,v1-v6,ip,lk}
+l   SETA   l-1
+    WEND
+    LDMIA  fp!,{v1-v6}
+    STMIA  sl!,{v1-v6}
+    SUBS   sp,sp,#1
+    BNE    scr_partupl132
+    LDR    sp,tempsp3a
+    LDR    pc,templk3a
+
+tempsp4
+    DCD 0
+templk4
+    DCD 0    
+     
+    EXPORT scr_partdown
+scr_partdown
+    BNE    scr_partdown132
+    STR    sp,tempsp4
+    STR    lk,templk4
+    MOV    sp,a2,LSL#1
+scr_partdll
+l   SETA   30
+    WHILE  l>0
+    LDMDB  fp!,{a1-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a1-a4,v1-v6,ip,lk}
+l   SETA   l-1
+    WEND
+    SUBS   sp,sp,#1
+    BNE    scr_partdll
+    LDR    sp,tempsp4
+    LDR    pc,templk4
+
+tempsp4a
+    DCD 0
+templk4a
+    DCD 0
+
+scr_partdown132
+    STR    sp,tempsp4a
+    STR    lk,templk4a
+    MOV    sp,a2,LSL#1
+scr_partdownl132
+l   SETA   49
+    WHILE  l>0
+    LDMDB  fp!,{a1-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a1-a4,v1-v6,ip,lk}
+l   SETA   l-1
+    WEND
+    LDMDB  fp!,{v1-v6}
+    STMDB  fp!,{v1-v6}
+    SUBS   sp,sp,#1
+    BNE    scr_partdownl132
+    LDR    sp,tempsp4a
+    LDR    pc,templk4a
+
+;--- Map scrollers ------------------------------------------------------------
+
+    EXPORT scr_pmapup
+scr_pmapup       
+    STMFD  sp!,{lk}
+    BNE    scr_pmapup132
+    RSB    a3,a2,#23
+    ADD    pc,pc,a3,LSL#6
+    MOVNV  a1,a1           ; Filler
+
+l   SETA   23
+    WHILE  l>0
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+l   SETA   l-1
+    WEND
+          
+    LDMFD  sp!,{pc}
+
+scr_pmapup132       
+    RSB    a3,a2,#23
+    MOV    a4,a3,LSL#7
+    SUB    a4,a4,a3,LSL#4
+    ADD    pc,pc,a4
+    MOVNV  a1,a1           ; Filler
+
+l   SETA   23
+    WHILE  l>0     
+    ; Do copy of 528 bytes
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMIA  fp!,{a3-a4,v1-v6,ip,lk}
+    STMIA  sl!,{a3-a4,v1-v6,ip,lk}
+    
+    LDMIA  fp!,{a3-a4,v1-v6}
+    STMIA  sl!,{a3-a4,v1-v6}
+l   SETA   l-1
+    WEND
+          
+    LDMFD  sp!,{pc}
+
+    EXPORT scr_pmapdown
+scr_pmapdown       
+    STMFD  sp!,{lk}
+    BNE    scr_pmapdown132
+    RSB    a3,a2,#23
+    ADD    pc,pc,a3,LSL#6
+    MOVNV  a1,a1           ; Filler
+
+l   SETA   23
+    WHILE  l>0
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+l   SETA   l-1
+    WEND
+          
+    LDMFD  sp!,{pc}
+
+scr_pmapdown132
+    RSB    a3,a2,#23
+    ADD    pc,pc,a3,LSL#6
+    MOVNV  a1,a1           ; Filler
+
+l   SETA   23
+    WHILE  l>0
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+    LDMDB  fp!,{a3-a4,v1-v6,ip,lk}
+    STMDB  sl!,{a3-a4,v1-v6,ip,lk}
+
+    LDMDB  fp!,{a3-a4,v1-v6}
+    STMDB  sl!,{a3-a4,v1-v6}
+l   SETA   l-1
+    WEND
+          
+    LDMFD  sp!,{pc}
+
+;--- Clear line ---------------------------------------------------------------
+
+    EXPORT lineclear_sprite
+lineclear_sprite
+l   SETA   72
+    WHILE  l>0
+    STMIA  sl!,{a1-a4,v1-v6}
+l   SETA   l-1
+    WEND
+
+    LDMEQFD sp!,{v1-v6,sl,pc}
+    
+    ; 132: Clear the rest of the line
+l   SETA   46
+    WHILE  l>0
+    STMIA  sl!,{a1-a4,v1-v6}
+l   SETA   l-1
+    WEND              
+
+    STMIA  sl!,{a1-a4,v1-v4}
+
+    LDMFD  sp!,{v1-v6,sl,pc}
+
+;------------------------------------------------------------------------------
+
+    AREA |C$$data|
+
+|x$dataseg|
+
+
+    END

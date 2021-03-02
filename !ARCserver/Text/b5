@@ -1,0 +1,37 @@
+{cls bfgbg wb}  ___       __   __{eol} 
+   |  \/\/ (__) (__     {fg c}Message upload format{eol}
+{eol std}
+
+{bfgbg yn}+ Uploading of messages now possible. BBS works out wether uploaded file
+  is ARCed or not (if it IS arced it will dearc the FIRST file in the
+  archive and take this as input to the handler).
+
+  Uploaded files consist of records looking like this (terminated by EOF):
+
+  <type> data
+
+  For example to vote 'yes' on message 621, you would use:
+
+  <vote> #621 Y
+
+  To send private mail to Hugo Fiennes:
+
+  <mail> ->Hugo Fiennes
+  subject
+  text (terminated by end of file or by a new message)
+
+  To send public mail in area 5, as a reply to message 630 (ARCbbs will
+  pick up who the message is to from the original message):
+
+  <msg> @5 #630
+  subject
+  text (terminated by end of file or by a new message)
+  
+  Public mail in area 5 to All (not a reply to anything):
+
+  <msg> @5 ->All
+  subject
+  text (terminated by end of file or by a new message)
+  
+Please mail me if you have any problems with this feature.
+                                                

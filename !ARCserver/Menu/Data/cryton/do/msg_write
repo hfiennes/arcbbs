@@ -1,0 +1,7 @@
+ECHO "{cls bfgbg wb}  ___       __   __{eol |}" 
+ECHO "   |  \/\/ (__) (__                                  {fg c}Write new public message{eol |}"
+ECHO "{eol std |}"  
+WRITE C
+ECHO "{_>0023 bfgbg wb}                                Press any key{eol std}"
+ANYKEY
+GOTO public

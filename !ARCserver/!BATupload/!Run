@@ -1,0 +1,3 @@
+WimpSlot -min 96k -max 96k
+Set BATupload$Dir <Obey$Dir>
+Run <BATupload$Dir>.!RunImage %*0

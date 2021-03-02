@@ -1,0 +1,24 @@
+| File bases
+DOING "Filebase menu"
+PROMPT "{bfgbg wb} Filebase {fgbg rw} Command {bg n} "
+|
+U,Upload file(s),GOTO do.upload
+D,Download file(s),GOTO do.download,,>f,NONE
+S,Short filelist,GOTO do.flist_s
+L,Long filelist,GOTO do.flist_l,,>f,NONE
+V,View queue,GOTO do.queue_view
+C,Clear queue,CLEARQUEUE
+G,Grab queue,GOTO do.download_q,,>f,NONE
+1,Global file locate,GOTO do.fil_gsear,,>f,NONE
+2,File locate,GOTO do.fil_lsear,,>f,NONE
+|
+M,Main menu,GOTO mainmenu
+*,Reselect filebase,GOTO do.fil_select
+|
+Z,Zip through new files,GOTO do.fil_zip,,>f,NONE
+=,Show all filebases,GOTO do.fil_all
+$,List my filebases,GOTO do.fil_mine
++,Join a filebase,CONF_JOIN
+-,Resign from a filebase,CONF_RESIGN 
+X,Expert/novice,TOGFLAGS U3
+/,,GOTO slash./

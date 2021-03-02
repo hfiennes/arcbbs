@@ -1,0 +1,3 @@
+cc batch -c -I$.risc_oslib
+link -o !ARCserver.!BATupload.!RunImage o.batch o.servcomme $.clib.o.stubs $.risc_oslib.o.risc_oslib o.modcomma o.crc
+squeeze -v !ARCserver.!BATupload.!RunImage

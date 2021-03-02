@@ -1,0 +1,17 @@
+{std cls bold}
+{_>0019 bg b eol _>4619 fg c _t6} left {fgbg rw}  ___       __   __{eol}
+{fgbg wb} Shortcuts: {fg y}/main    {fg w}Main menu{eol _>5720 fgbg rw}   |  \/\/ (__) (__{eol}
+{fgbg wb}            {fg y}/msg     {fg w}Message bases{eol _>5721 fgbg rw eol}
+{fgbg wb}            {fg y}/mu      {fg w}Multiuser chat{eol _>5722 fgbg bw}     Time Travel{eol}
+{fgbg wb eol _>5723 bg w eol _>0000}
+
+{bfgbg yn}The options here allow you to mark messages as unread - for example
+you can download last weeks mail by keying W then RDA to download.
+
+{fg c}[{fg y}C{fg c}]{fg w}atch up (no unread messages)      {fg c}[{fg y}W{fg c}]{fg w}eek - back a week
+{fg c}[{fg y}1{fg c}]{fg w} Day                              {fg c}[{fg y}2{fg c}]{fg w} days
+{fg c}[{fg y}3{fg c}]{fg w} Day                              {fg c}[{fg y}4{fg c}]{fg w} days
+{fg c}[{fg y}5{fg c}]{fg w} Day                              {fg c}[{fg y}6{fg c}]{fg w} days
+{fg c}[{fg y}M{fg c}]{fg w}onth - use with care (Scratchpad is likely to be BIG!)
+
+{fg c}[{fg y}R{fg c}]{fg w}eturn to messagebase menu         {fg c}[{fg y}M{fg c}]{fg w}ain menu{_>0000}

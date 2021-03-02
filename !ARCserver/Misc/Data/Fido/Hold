@@ -1,0 +1,10 @@
+; Hold file: here you enter the zone/net/node's and packet status's for
+; packets generated to that node. For example, to put all packets directed
+; to 2:252/1000 on hold, you'd use:
+;            H 2:252/1000    
+; If the node is not found in the table then a normal 'OT' packet is
+; generated.
+;
+; Hold mail for Noah
+H 2:252/106
+H 5:492/5

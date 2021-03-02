@@ -1,0 +1,4 @@
+PROMPT "{_>2500}ye"
+!,"","GOTO slash.help","",0,NONE
+/,"","GOTO slash./","",0,NONE
+L,"","GOTO slash./yel","",0,NONE

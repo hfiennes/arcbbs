@@ -1,0 +1,7 @@
+;
+; Message area flag names
+;
+;#  Short name
+;-  --------------------
+0   echomail_access
+

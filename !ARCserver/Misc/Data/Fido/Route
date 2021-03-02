@@ -1,0 +1,8 @@
+; Map zones 1,3,4,5 to my boss to save my bill!
+ZoneMap 1 2:252/1000
+ZoneMap 3 2:252/1000
+ZoneMap 4 2:252/1000
+ZoneMap 5 2:252/1000
+; 252/110 is 252/1000 actually, and to save a call...
+NodeMap 2:252/110 2:252/1000
+ZoneMap 2 2:252/1000

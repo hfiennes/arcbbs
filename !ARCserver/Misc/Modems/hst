@@ -1,0 +1,15 @@
+; HST modem driver
+;
+driver internal
+port 0
+;
+txspeed 19200
+rxspeed 19200
+;
+modem hayes
+baud hst
+ringresponse ata
+;
+welcometext <arcbbs$text>.logon1
+;
+modeminit AT&B2&W|~ATE1Q0V1X1B0F1M1&A2&G2&H1|~AT&I0&J0&K1&L0&M4&N0&P1&C1S27=0|~AT&R2S2=255S28=8&Y0S0=2S9=1S10=3H0|

@@ -1,0 +1,7 @@
+ECHO "{cls bfgbg wb}  ___       __   __{eol |}" 
+ECHO "   |  \/\/ (__) (__                                             {fg c}Read messages{eol |}"
+ECHO "{eol |}"
+READ C
+ECHO "{bfgbg wb}                             Press any key{eol std}"
+ANYKEY
+GOTO public

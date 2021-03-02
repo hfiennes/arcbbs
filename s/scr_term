@@ -1,0 +1,1108 @@
+;                    _____________________________________________
+;                  [>                                             <]
+;Project           [> ARCterm 7                                   <]
+;Author            [> Hugo Fiennes                                <]
+;Date started      [> 17-August-1990                              <]
+;                  [>                                             <]
+;Module name       [> Scrolling terminals                         <]
+;Current version   [> 00.39                                       <]
+;Version date      [> 19-December-1991                            <]
+;State             [> Unfinished                                  <]
+;                  [>                                             <]
+;                  [>  This source is COPYRIGHT (c) 1990/1991 by  <]
+;                  [>       Hugo Fiennes of The Serial Port       <]
+;                  [>_____________________________________________<]
+
+; SWI values
+
+WriteC        * &00
+CLI           * &05
+Byte          * &06
+SerialOp      * &57
+PrintChar     * &5d
+KeypadClaim   * &81543
+KeypadRelease * &81544
+
+XOS_MASK      * &00020000 ; mask to make a swi a RISC OS v-error swi
+
+; ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+; Register names   Modified for new call standard (GOD acorn, I wish you'd
+;                  stop chaging your mind...)
+; ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+a1 RN 0
+a2 RN 1
+a3 RN 2
+a4 RN 3
+v1 RN 4
+v2 RN 5
+v3 RN 6
+v4 RN 7
+v5 RN 8
+v6 RN 9
+sl RN 10
+fp RN 11
+ip RN 12
+sp RN 13
+lk RN 14
+pc RN 15
+       
+r0 RN 0
+r1 RN 1
+r2 RN 2
+r3 RN 3
+r4 RN 4
+r5 RN 5
+r6 RN 6
+r7 RN 7
+r8 RN 8
+r9 RN 9
+r10 RN 10
+r11 RN 11
+r12 RN 12
+r13 RN 13
+r14 RN 14
+
+; Variable for loops
+ GBLA   l
+
+ AREA |C$$code|, CODE, READONLY
+                       
+;------------------------------------------------------------------------------
+; Screen is 80x25. Each character on the screen is represented by a word in
+;  a map which details a) The character present and b) Any attributes for
+;  that character.
+;------------------------------------------------------------------------------
+
+; Attributes
+FLASHHIDE  * &00010000
+UNDERLINE  * &00020000
+FLASH      * &00040000
+REVERSE    * &00080000
+SELECT     * &00100000
+DH_TOP     * &00200000
+DH_BOTTOM  * &00400000
+CURSOR     * &00800000
+BACKGROUND * &0f000000
+FOREGROUND * &f0000000
+BOLD       * &80000000
+
+DUB        * &00600000
+    
+; Screen structure
+WORDMAP           * &00000000
+SPRITE            * &00000004
+CHARSET           * &00000008
+MINX              * &0000000C
+MAXX              * &00000010
+MINY              * &00000014
+MAXY              * &00000018
+CURRENTATTRIB     * &0000001c
+WORDMAP_TOP       * &00000020
+SPRITE_TOP        * &00000024
+SPRITEAREA        * &00000028
+SAVEAREA          * &0000002c
+CURX              * &00000030
+CURY              * &00000034
+G0SET             * &00000038
+G1SET             * &0000003c
+WIDTH             * &00000040
+SPRITEPTR         * &00000044
+CURSORTYPE        * &00000048
+CURSORSTATUS      * &0000004c
+
+; Get address of screen info structure
+ IMPORT scr_screen
+
+ IMPORT scr_up
+ IMPORT scr_down
+ IMPORT scr_partup
+ IMPORT scr_partdown
+ IMPORT scr_pmapup
+ IMPORT scr_pmapdown
+       
+ IMPORT scr_spoolfile
+ IMPORT scr_spoolstrip
+
+ IMPORT lineclear_sprite
+
+;--- scr_print ----------------------------------------------------------------
+; Prints a1 to printer
+
+    EXPORT scr_print
+scr_print
+    SWI    PrintChar
+    MOV    pc,lk
+
+;--- keypad_claim & keypad_release --------------------------------------------
+
+    EXPORT scr_claimkeypad
+scr_claimkeypad
+    SWI    KeypadClaim
+    MOV    pc,lk
+
+    EXPORT scr_releasekeypad
+scr_releasekeypad
+    SWI    KeypadRelease
+    MOV    pc,lk
+
+;--- scr_tofile ---------------------------------------------------------------
+; Puts a1 in spool file if open and char suitable
+
+    EXPORT scr_tofile
+scr_tofile
+    LDR    a2,=scr_spoolfile
+    LDR    a2,[a2]
+    CMP    a2,#0
+    MOVEQ  a1,#0
+    MOVEQ  pc,lk
+    LDR    a3,=scr_spoolstrip
+    LDR    a3,[a3]
+    CMP    a3,#0
+    MOVEQ  a1,#0
+    SWINE  (XOS_MASK+&b)           ; XOS_BPut
+    MOVVC  a1,#0
+    MOV    pc,lk
+
+    EXPORT scr_torawfile
+scr_torawfile
+    LDR    a2,=scr_spoolfile
+    LDR    a2,[a2]
+    CMP    a2,#0
+    MOVEQ  a1,#0
+    MOVEQ  pc,lk
+    LDR    a3,=scr_spoolstrip
+    LDR    a3,[a3]
+    CMP    a3,#0
+    MOVNE  a1,#0
+    SWIEQ  (XOS_MASK+&b)           ; OS_BPut
+    MOVVC  a1,#0
+    MOV    pc,lk
+
+    EXPORT scr_toanyfile
+scr_toanyfile
+    CMP    a2,#0
+    MOVEQ  a1,#0
+    SWINE  (XOS_MASK+&b)           ; OS_BPut
+    MOVVC  a1,#0
+    MOV    pc,lk
+
+;--- scr_clearline ------------------------------------------------------------
+; Clear line routine. Clears line a1 to default attributes
+
+    EXPORT scr_clearline
+scr_clearline
+    STMFD  sp!,{v1-v6,sl,lk}
+    LDR    v6,=scr_screen
+    MOV    a2,#0
+    STR    a2,[v6,#MINX]
+    LDR    a2,[v6,#WIDTH]
+    SUB    a2,a2,#1
+    STR    a2,[v6,#MAXX]
+    LDR    a2,[v6,#MINY]
+    CMP    a1,a2
+    STRLT  a1,[v6,#MINY]
+    LDR    a2,[v6,#MAXY]
+    CMP    a1,a2
+    STRGT  a1,[v6,#MAXY]
+
+    ; Clear map    
+    LDR    a2,[v6,#WIDTH]
+    CMP    a2,#80
+    MOVEQ  a2,a1,LSL#8     ;  80:
+    ADDEQ  sl,a2,a1,LSL#6  ;  80: * 320 bytes/line in map
+    MOVNE  a2,a1,LSL#9     ; 132:
+    ADDNE  sl,a2,a1,LSL#4  ; 132: * 528 bytes/line in map
+
+    LDR    a2,[v6,#WORDMAP]
+    ADD    sl,sl,a2
+    LDR    a2,[v6,#CURRENTATTRIB]
+    ORR    a2,a2,#(32*256)    ; Is a space!
+    MOV    a3,a2
+    MOV    a4,a2
+    MOV    v1,a2
+    MOV    v2,a2
+    MOV    v3,a2
+    MOV    v4,a2
+    MOV    v5,a2
+    MOV    v6,a2
+    MOV    lk,a2
+    STMIA  sl!,{a2-a4,v1-v6,lk}
+    STMIA  sl!,{a2-a4,v1-v6,lk}
+    STMIA  sl!,{a2-a4,v1-v6,lk}
+    STMIA  sl!,{a2-a4,v1-v6,lk}
+    STMIA  sl!,{a2-a4,v1-v6,lk}
+    STMIA  sl!,{a2-a4,v1-v6,lk}
+    STMIA  sl!,{a2-a4,v1-v6,lk}
+    STMIA  sl!,{a2-a4,v1-v6,lk}
+    BEQ    cspr
+    STMIA  sl!,{a2-a4,v1-v6,lk}
+    STMIA  sl!,{a2-a4,v1-v6,lk}
+    STMIA  sl!,{a2-a4,v1-v6,lk}
+    STMIA  sl!,{a2-a4,v1-v6,lk}
+    STMIA  sl!,{a2-a4,v1-v6,lk}
+    STMIA  sl!,{a3-a4,v1-v6}
+               
+cspr
+    ; Clear sprite
+    LDR    v6,=scr_screen
+    LDR    a2,[v6,#WIDTH]
+    CMP    a2,#80
+    MOVEQ  a2,a1,LSL#8      ;  80: * 256
+    ADDEQ  a1,a2,a1,LSL#6   ;  80: * 320 bytes/line
+    MOVNE  a2,a1,LSL#9      ; 132: * 512
+    ADDNE  a1,a2,a1,LSL#4   ; 132: * 528 bytes/line
+
+    ADD    a1,a1,a1,LSL#3   ; *9 (9 lines of 320 bytes/char)
+    LDR    a2,[v6,#SPRITE]
+    ADD    sl,a1,a2         ; Actual sprite position
+
+    LDR    a1,[v6,#CURRENTATTRIB]
+    LDR    a2,=scr_colours
+    TST    a1,#REVERSE
+    ANDEQ  a1,a1,#BACKGROUND
+    LDREQ  a1,[a2,a1,LSR#22]
+    ANDNE  a1,a1,#FOREGROUND
+    ORRNE  a1,a1,#BOLD
+    LDRNE  a1,[a2,a1,LSR#26]
+    LDR    v6,[v6,#WIDTH]
+    CMP    v6,#80
+    MOV    a2,a1
+    MOV    a3,a1
+    MOV    a4,a1
+    MOV    v1,a1
+    MOV    v2,a1
+    MOV    v3,a1
+    MOV    v4,a1
+    MOV    v5,a1
+    MOV    v6,a1
+
+    B      lineclear_sprite
+
+;--- scr_plotchar -------------------------------------------------------------
+; Plots char (a1) to x (a2), y (a3) and updates 'changed box'
+                        
+    EXPORT scr_direct
+scr_direct
+    STMFD  sp!,{v1-v6,sl,fp,ip,lk}
+    LDR    v6,=scr_screen
+
+    ; Plot character in map
+    LDR    v1,[v6,#WORDMAP]
+
+    ; Double X-coords if double width line
+    LDR    a4,[v6,#WIDTH]
+    CMP    a4,#80
+    MOVEQ  a4,a3,LSL#6      ;  80: (y * 64)
+    ADDEQ  a4,a4,a3,LSL#4   ;  80: (y * 64 + y * 16)
+    MOVNE  a4,a3,LSL#7      ; 132: (y * 128)
+    ADDNE  a4,a4,a3,LSL#2   ; 132: (y * 128 + y * 4)
+    LDR    a4,[v1,a4,LSL#2]
+    TST    a4,#DUB
+    BEQ    scr_direct1
+    LDR    lk,[v6,#WIDTH]
+    MOV    lk,lk,LSR#1
+    CMP    a2,lk
+    SUBGE  a2,lk,#1
+
+    ; Find/update X-limits
+    MOV    lk,a2,LSL#1
+    LDR    a4,[v6,#MINX]
+    CMP    lk,a4
+    STRLT  lk,[v6,#MINX]
+    ADD    lk,lk,#1
+    LDR    a4,[v6,#MAXX]
+    CMP    lk,a4
+    STRGT  lk,[v6,#MAXX] 
+
+    MOV    v2,a1
+    B      inagain2
+                 
+scr_direct1
+    ; Add default attributes
+    MOV    v2,a1
+    TST    v2,#DUB
+    BEQ    inagain
+    
+    LDR    lk,[v6,#WIDTH]
+    MOV    lk,lk,LSR#1
+    CMP    a2,lk
+    SUBGE  a2,lk,#1
+
+    ; Find/update X-limits
+    MOV    lk,a2,LSL#1
+    LDR    a4,[v6,#MINX]
+    CMP    lk,a4
+    STRLT  lk,[v6,#MINX]
+    ADD    lk,lk,#1
+    LDR    a4,[v6,#MAXX]
+    CMP    lk,a4
+    STRGT  lk,[v6,#MAXX] 
+
+    B      inagain2
+
+    EXPORT scr_plotchar
+scr_plotchar  
+    STMFD  sp!,{v1-v6,sl,fp,ip,lk}
+    LDR    v6,=scr_screen
+
+    ; Plot character in map
+    LDR    v1,[v6,#WORDMAP]
+
+    ; Double X-coords if double width line
+    LDR    a4,[v6,#WIDTH]
+    CMP    a4,#80
+    MOVEQ  a4,a3,LSL#6      ;  80: (y * 64)
+    ADDEQ  a4,a4,a3,LSL#4   ;  80: (y * 64 + y * 16)
+    MOVNE  a4,a3,LSL#7      ; 132: (y * 128)
+    ADDNE  a4,a4,a3,LSL#2   ; 132: (y * 128 + y * 4)
+    LDR    a4,[v1,a4,LSL#2]
+    TST    a4,#DUB
+    BEQ    scr_plotchar1
+    LDR    lk,[v6,#WIDTH]
+    MOV    lk,lk,LSR#1
+    CMP    a2,lk
+    SUBGE  a2,lk,#1
+
+    ; Find/update X-limits
+    MOV    lk,a2,LSL#1
+    LDR    a4,[v6,#MINX]
+    CMP    lk,a4
+    STRLT  lk,[v6,#MINX]
+    ADD    lk,lk,#1
+    LDR    a4,[v6,#MAXX]
+    CMP    lk,a4
+    STRGT  lk,[v6,#MAXX] 
+                      
+scr_plotchar1
+    ; Add default attributes
+    LDR    v2,[v6,#CURRENTATTRIB]
+    ORR    v2,a1,v2
+
+inagain
+    ; Find/update X-limits
+    LDR    a4,[v6,#MINX]
+    CMP    a2,a4
+    STRLT  a2,[v6,#MINX]
+    LDR    a4,[v6,#MAXX]
+    CMP    a2,a4
+    STRGT  a2,[v6,#MAXX] 
+inagain2                       
+
+    ; And Y-limits
+    LDR    a4,[v6,#MINY]
+    CMP    a3,a4
+    STRLT  a3,[v6,#MINY]
+    LDR    a4,[v6,#MAXY]
+    CMP    a3,a4
+    STRGT  a3,[v6,#MAXY]     
+
+    LDR    v3,=scr_colours
+
+    TST    v2,#SELECT
+    LDRNE  sl,[v3,#0]
+    LDRNE  fp,[v3,#(15*4)]
+    BNE    erev
+
+revnoc
+    TST    v2,#REVERSE
+    BEQ    norev
+
+    AND    fp,v2,#FOREGROUND
+    ORR    fp,fp,#BOLD
+    LDR    fp,[v3,fp,LSR#26]
+    AND    sl,v2,#BACKGROUND
+    TST    v2,#BOLD
+    ORRNE  sl,sl,#&08000000
+    LDR    sl,[v3,sl,LSR#22]
+    B      erev
+                
+norev               
+    AND    sl,v2,#FOREGROUND
+    LDR    sl,[v3,sl,LSR#26]
+    AND    fp,v2,#BACKGROUND
+    LDR    fp,[v3,fp,LSR#22]
+
+erev
+    TST    v2,#CURSOR
+    BEQ    nocursor
+    LDR    lk,[v6,#CURSORTYPE]
+    CMP    lk,#0
+    BNE    nocursor
+
+    TST    v2,#REVERSE
+    MOVNE  lk,sl
+    MOVNE  sl,fp
+    MOVNE  fp,lk
+    LDREQ  sl,[v3,#0]
+    LDREQ  fp,[v3,#(15*4)]
+
+nocursor
+    TST    v2,#FLASH        ; Only do flashhide on flashing data!               
+    TSTNE  v2,#FLASHHIDE
+    MOVNE  sl,fp            ; If flash hiding, foreground=background
+               
+    ; Put word on wordmap
+    LDR    a4,[v6,#WIDTH]
+    CMP    a4,#80
+    MOVEQ  a4,a3,LSL#6      ;  80: (y * 64)
+    ADDEQ  a4,a4,a3,LSL#4   ;  80: (y * 64 + y * 16)
+    MOVNE  a4,a3,LSL#7      ; 132: (y * 128)
+    ADDNE  a4,a4,a3,LSL#2   ; 132: (y * 128 + y * 4)
+    ADD    a4,a4,a2         ; + x
+    LDR    lk,[v1,a4,LSL#2]
+    AND    lk,lk,#&00600000
+    BIC    v2,v2,#&00600000
+    ORR    v2,v2,lk
+    STR    v2,[v1,a4,LSL#2] ; Store word
+
+    AND    a1,a1,#&ff
+
+    LDR    v1,[v6,#CHARSET]
+
+    ; Find position in charset            
+    MOV    a4,a1,LSL#3
+    ADD    a1,a4,a1         ; 9 lines/char
+    ADD    a1,v1,a1,LSL#2   ; 9 words per character
+
+    STMFD  sp!,{v2}
+    TST    v2,#DH_TOP       ; Double width
+    TSTNE  v2,#DH_BOTTOM    ; (both)
+    BNE    pc_dw
+    TST    v2,#DH_TOP       ; Top of double height?
+    BNE    pc_dhtop
+    TST    v2,#DH_BOTTOM    ; Bottom of double height?
+    BNE    pc_dhbottom
+
+    ; Plot character on screen
+    LDR    v3,[v6,#SPRITE]
+    
+    ; Find position in sprite
+    LDR    a4,[v6,#WIDTH]
+    CMP    a4,#80
+    MOVEQ  a4,a3,LSL#6      ;  80: * 64
+    ADDEQ  a4,a4,a4,LSL#2   ;  80: * 320 bytes/line
+    MOVNE  a4,a3,LSL#9      ; 132: * 512
+    ADDNE  a4,a4,a3,LSL#4   ; 132: * 528 bytes/line
+
+    ADD    a4,a4,a4,LSL#3   ; *9 (9 lines)
+    ADD    lk,a4,a2,LSL#2   ; Plus x position
+    ADD    lk,lk,v3              
+                         
+    BNE    pl_132a
+    TST    v2,#UNDERLINE    ; Underlined?
+    LDMIA  a1,{a2-v6}       ; Load 9 words               
+    BIC    ip,fp,a2         ; Make background mask
+    AND    a2,a2,sl         ; Make foreground
+    ORR    a2,a2,ip         ; Combine        
+    STR    a2,[lk],#320     ; Store 9 words, one per line
+    BIC    ip,fp,a3
+    AND    a3,a3,sl
+    ORR    a3,a3,ip        
+    STR    a3,[lk],#320
+    BIC    ip,fp,a4
+    AND    a4,a4,sl
+    ORR    a4,a4,ip
+    STR    a4,[lk],#320
+    BIC    ip,fp,v1
+    AND    v1,v1,sl
+    ORR    v1,v1,ip
+    STR    v1,[lk],#320
+    BIC    ip,fp,v2
+    AND    v2,v2,sl
+    ORR    v2,v2,ip
+    STR    v2,[lk],#320
+    BIC    ip,fp,v3
+    AND    v3,v3,sl
+    ORR    v3,v3,ip
+    STR    v3,[lk],#320
+    BIC    ip,fp,v4
+    AND    v4,v4,sl
+    ORR    v4,v4,ip
+    STR    v4,[lk],#320
+    BIC    ip,fp,v5
+    AND    v5,v5,sl
+    ORR    v5,v5,ip
+    STR    v5,[lk],#320
+    BICEQ  ip,fp,v6         ; Not for underline!
+    ANDEQ  v6,v6,sl
+    ORREQ  v6,v6,ip        
+    STREQ  v6,[lk]
+    STRNE  sl,[lk]
+
+    LDMFD  sp!,{a1}
+    TST    a1,#CURSOR
+    LDMEQFD sp!,{v1-v6,sl,fp,ip,pc}
+    LDR    v6,=scr_screen
+    LDR    a2,[v6,#CURSORTYPE]
+    CMP    a2,#1
+    LDMNEFD sp!,{v1-v6,sl,fp,ip,pc}
+    LDR    v3,=scr_colours
+    MOV    a1,a1,LSR#24
+    AND    a1,a1,#&7
+    CMP    a1,#7
+    LDRNE  sl,[v3,#(15*4)]
+    LDREQ  sl,[v3,#0]
+    STR    sl,[lk]
+    LDMFD  sp!,{v1-v6,sl,fp,ip,pc}
+
+pl_132a
+    TST    v2,#UNDERLINE    ; Underlined?
+    LDMIA  a1,{a2-v6}       ; Load 9 words               
+    BIC    ip,fp,a2         ; Make background mask
+    AND    a2,a2,sl         ; Make foreground
+    ORR    a2,a2,ip         ; Combine        
+    STR    a2,[lk],#528     ; Store 9 words, one per line
+    BIC    ip,fp,a3
+    AND    a3,a3,sl
+    ORR    a3,a3,ip        
+    STR    a3,[lk],#528
+    BIC    ip,fp,a4
+    AND    a4,a4,sl
+    ORR    a4,a4,ip
+    STR    a4,[lk],#528
+    BIC    ip,fp,v1
+    AND    v1,v1,sl
+    ORR    v1,v1,ip
+    STR    v1,[lk],#528
+    BIC    ip,fp,v2
+    AND    v2,v2,sl
+    ORR    v2,v2,ip
+    STR    v2,[lk],#528
+    BIC    ip,fp,v3
+    AND    v3,v3,sl
+    ORR    v3,v3,ip
+    STR    v3,[lk],#528
+    BIC    ip,fp,v4
+    AND    v4,v4,sl
+    ORR    v4,v4,ip
+    STR    v4,[lk],#528
+    BIC    ip,fp,v5
+    AND    v5,v5,sl
+    ORR    v5,v5,ip
+    STR    v5,[lk],#528
+    BICEQ  ip,fp,v6         ; Not for underline!
+    ANDEQ  v6,v6,sl
+    ORREQ  v6,v6,ip        
+    STREQ  v6,[lk]
+    STRNE  sl,[lk]
+
+    LDMFD  sp!,{a1}
+    TST    a1,#CURSOR
+    LDMEQFD sp!,{v1-v6,sl,fp,ip,pc}
+    LDR    v6,=scr_screen
+    LDR    a2,[v6,#CURSORTYPE]
+    CMP    a2,#1
+    LDMNEFD sp!,{v1-v6,sl,fp,ip,pc}
+    LDR    v3,=scr_colours
+    MOV    a1,a1,LSR#24
+    AND    a1,a1,#&7
+    CMP    a1,#7
+    LDRNE  sl,[v3,#(15*4)]
+    LDREQ  sl,[v3,#0]
+    STR    sl,[lk]
+    LDMFD  sp!,{v1-v6,sl,fp,ip,pc}
+
+; Double height/width top
+pc_dhtop
+    ; Plot character on screen
+    LDR    v2,[v6,#SPRITE]
+    
+    ; Find position in sprite
+    LDR    a4,[v6,#WIDTH]
+    CMP    a4,#80
+    MOVEQ  v5,#312
+    MOVEQ  a4,a3,LSL#6      ;  80: * 64
+    ADDEQ  a4,a4,a4,LSL#2   ;  80: * 320 bytes/line
+    MOVNE  v5,#520
+    MOVNE  a4,a3,LSL#9      ; 132: * 512
+    ADDNE  a4,a4,a3,LSL#4   ; 132: * 528 bytes/line
+
+    ADD    a4,a4,a4,LSL#3   ; *9 (9 lines of 320 bytes/char)
+    ADD    lk,a4,a2,LSL#3   ; Plus x position
+    ADD    lk,lk,v2              
+                     
+    MOV    ip,#5
+pc_dhtop1
+    LDR    a2,[a1],#4
+    TST    a2,#&0000000f
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&000000f0
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&00000f00
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&0000f000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&000f0000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&00f00000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&0f000000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&f0000000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    ADD    lk,lk,v5                 
+                     
+    CMP    ip,#1
+    BEQ    pc_dhtop2
+
+    TST    a2,#&0000000f
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&000000f0
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&00000f00
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&0000f000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&000f0000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&00f00000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&0f000000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&f0000000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    ADD    lk,lk,v5                 
+    
+pc_dhtop2     
+    SUBS   ip,ip,#1
+    BNE    pc_dhtop1
+                   
+    ADD    sp,sp,#4
+    LDMFD  sp!,{v1-v6,sl,fp,ip,pc}
+
+; Double height bottom
+pc_dhbottom
+    ; Plot character on screen
+    ADD    a1,a1,#16        ; Skip 1st 4 lines (only doing bottom half)   
+    LDR    v3,[v6,#SPRITE]
+
+    ; Find position in sprite
+    LDR    a4,[v6,#WIDTH]
+    CMP    a4,#80
+    MOVEQ  v5,#312
+    MOVEQ  a4,a3,LSL#6      ;  80: * 64
+    ADDEQ  a4,a4,a4,LSL#2   ;  80: * 320 bytes/line
+    MOVNE  v5,#520
+    MOVNE  a4,a3,LSL#9      ; 132: * 512
+    ADDNE  a4,a4,a3,LSL#4   ; 132: * 528 bytes/line
+
+    ADD    a4,a4,a4,LSL#3   ; *9 (9 lines of 320 bytes/char)
+    ADD    lk,a4,a2,LSL#3   ; Plus x position
+    ADD    lk,lk,v3              
+
+    MOV    ip,#5
+    LDR    a2,[a1],#4
+    B      pc_dhbot3
+pc_dhbot1       
+    CMP    ip,#1
+    LDRNE  a2,[a1],#4
+    BNE    pc_dhbot2
+    TST    v2,#UNDERLINE
+    MOVNE  a2,#&ffffffff
+    LDREQ  a2,[a1],#4
+pc_dhbot2
+    TST    a2,#&0000000f
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&000000f0
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&00000f00
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&0000f000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&000f0000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&00f00000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&0f000000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&f0000000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    ADD    lk,lk,v5                 
+     
+pc_dhbot3
+    TST    a2,#&0000000f
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&000000f0
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&00000f00
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&0000f000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&000f0000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&00f00000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&0f000000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&f0000000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    ADD    lk,lk,v5                 
+         
+    SUBS   ip,ip,#1
+    BNE    pc_dhbot1
+
+    LDMFD  sp!,{a1}
+    TST    a1,#CURSOR
+    LDMEQFD sp!,{v1-v6,sl,fp,ip,pc}
+    LDR    v6,=scr_screen
+    LDR    a2,[v6,#CURSORTYPE]
+    CMP    a2,#1
+    LDMNEFD sp!,{v1-v6,sl,fp,ip,pc}
+    LDR    v3,=scr_colours
+    MOV    a1,a1,LSR#24
+    AND    a1,a1,#&7
+    CMP    a1,#7
+    LDRNE  sl,[v3,#(15*4)]
+    LDREQ  sl,[v3,#0]
+    SUB    lk,lk,v5
+    STR    sl,[lk,#-8]
+    STR    sl,[lk,#-4]
+    LDMFD  sp!,{v1-v6,sl,fp,ip,pc}
+
+    
+; Double width
+pc_dw
+    ; Plot character on screen
+    LDR    v3,[v6,#SPRITE]
+
+    ; Find position in sprite
+    LDR    a4,[v6,#WIDTH]
+    CMP    a4,#80
+    MOVEQ  v5,#312
+    MOVEQ  a4,a3,LSL#6      ;  80: * 64
+    ADDEQ  a4,a4,a4,LSL#2   ;  80: * 320 bytes/line
+    MOVNE  v5,#520
+    MOVNE  a4,a3,LSL#9      ; 132: * 512
+    ADDNE  a4,a4,a3,LSL#4   ; 132: * 528 bytes/line
+
+    ADD    a4,a4,a4,LSL#3   ; *9 (9 lines of 320 bytes/char)
+    ADD    lk,a4,a2,LSL#3   ; Plus x position
+    ADD    lk,lk,v3              
+                     
+    MOV    ip,#9
+pc_dw1
+    CMP    ip,#1
+    LDRNE  a2,[a1],#4
+    BNE    pc_dw2
+    TST    v2,#UNDERLINE
+    MOVNE  a2,#&ffffffff
+    LDREQ  a2,[a1],#4
+pc_dw2
+    TST    a2,#&0000000f
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&000000f0
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&00000f00
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&0000f000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&000f0000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&00f00000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&0f000000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    TST    a2,#&f0000000
+    STREQB fp,[lk],#1
+    STRNEB sl,[lk],#1
+    ADD    lk,lk,v5                 
+
+    SUBS   ip,ip,#1
+    BNE    pc_dw1
+
+    LDMFD  sp!,{a1}
+    TST    a1,#CURSOR
+    LDMEQFD sp!,{v1-v6,sl,fp,ip,pc}
+    LDR    v6,=scr_screen
+    LDR    a2,[v6,#CURSORTYPE]
+    CMP    a2,#1
+    LDMNEFD sp!,{v1-v6,sl,fp,ip,pc}
+    LDR    v3,=scr_colours
+    MOV    a1,a1,LSR#24
+    AND    a1,a1,#&7
+    CMP    a1,#7
+    LDRNE  sl,[v3,#(15*4)]
+    LDREQ  sl,[v3,#0]
+    SUB    lk,lk,v5
+    STR    sl,[lk,#-8]
+    STR    sl,[lk,#-4]
+    LDMFD  sp!,{v1-v6,sl,fp,ip,pc}
+
+;--- scr_scrollmapup ----------------------------------------------------------
+; Scrolls word map and sprite up one line
+                                  
+    EXPORT scr_scrollmapup
+scr_scrollmapup
+    STMFD  sp!,{v1-v6,sl,fp,ip,lk}
+    LDR    ip,=scr_screen
+    
+    ; Scroll map first
+    LDR    a1,[ip,#WIDTH]
+    CMP    a1,#80
+    LDR    sl,[ip,#WORDMAP]
+    ADD    fp,sl,a1,LSL#2
+
+    ; No loop for fast copy!
+    MOV    a2,#23
+    BL     scr_pmapup
+
+    ; Scroll sprite   
+    LDR    ip,=scr_screen
+    LDR    a1,[ip,#WIDTH]
+    CMP    a1,#80
+    LDR    sl,[ip,#SPRITE]
+    ADD    fp,sl,a1,LSL#5
+    ADD    fp,fp,a1,LSL#2   ; *36 
+    BL     scr_up
+
+    ; Clear last 80/132 chars
+    MOV    a1,#23
+    BL     scr_clearline
+
+    LDMFD  sp!,{v1-v6,sl,fp,ip,pc}
+
+;--- scr_scrollmapdown --------------------------------------------------------
+; Scrolls word map and sprite down one line
+                                  
+    EXPORT scr_scrollmapdown
+scr_scrollmapdown
+    STMFD  sp!,{v1-v6,sl,fp,ip,lk}
+    LDR    ip,=scr_screen
+    
+    ; Scroll map first
+    LDR    a1,[ip,#WIDTH]
+    CMP    a1,#80
+    LDR    sl,[ip,#WORDMAP_TOP]
+    SUB    fp,sl,a1,LSL#2
+
+    MOV    a2,#23
+    BL     scr_pmapdown
+              
+    ; Scroll sprite   
+    LDR    ip,=scr_screen
+    LDR    a1,[ip,#WIDTH]
+    CMP    a1,#80
+    LDR    sl,[ip,#SPRITE_TOP]
+    SUB    fp,sl,a1,LSL#5
+    SUB    fp,fp,a1,LSL#2
+    BL     scr_down
+
+    ; Clear first 80 chars
+    MOV    a1,#0
+    BL     scr_clearline
+
+    LDMFD  sp!,{v1-v6,sl,fp,ip,pc}
+
+;--- Partial scroll up ---------------------------------------------------------
+
+    EXPORT scr_partscrollmapup
+scr_partscrollmapup
+    STMFD  sp!,{v1-v6,sl,fp,ip,lk}
+    LDR    ip,=scr_screen
+    
+    ; Scroll map first
+    LDR    v1,[ip,#WIDTH]
+    CMP    v1,#80
+    LDR    sl,[ip,#WORDMAP]
+    MOVEQ  a3,a1,LSL#6      ;  80: *64
+    ADDEQ  a3,a3,a3,LSL#2   ;  80: *320
+    MOVNE  a3,a1,LSL#9      ; 132: *512
+    ADDNE  a3,a3,a1,LSL#4   ; 132: *528
+    ADD    sl,sl,a3
+    ADD    fp,sl,v1,LSL#2
+    BL     scr_pmapup
+
+    ; Scroll sprite   
+    LDR    ip,=scr_screen
+    LDR    v1,[ip,#WIDTH]
+    CMP    v1,#80
+    LDR    sl,[ip,#SPRITE]
+    MOVEQ  a1,a1,LSL#6      ;  80: * 64
+    ADDEQ  a1,a1,a1,LSL#2   ;  80: * 320 bytes/line
+    MOVNE  a3,a1,LSL#9      ; 132: * 512
+    ADDNE  a1,a3,a1,LSL#4   ; 132: * 528
+
+    ADD    a1,a1,a1,LSL#3   ; *9 (9 lines of 320 bytes/char)
+    ADD    sl,sl,a1
+    ADD    fp,sl,v1,LSL#5
+    ADD    fp,fp,v1,LSL#2
+    BL     scr_partup
+        
+    LDMFD  sp!,{v1-v6,sl,fp,ip,pc}
+
+;--- scr_scrollmapdown --------------------------------------------------------
+; Scrolls word map and sprite down one line
+                                  
+    EXPORT scr_partscrollmapdown
+scr_partscrollmapdown
+    STMFD  sp!,{v1-v6,sl,fp,ip,lk}
+    LDR    ip,=scr_screen      
+    RSB    a1,a1,#23
+    
+    ; Scroll map first
+    LDR    v1,[ip,#WIDTH]
+    CMP    v1,#80
+    LDR    sl,[ip,#WORDMAP_TOP]
+    MOVEQ  a3,a1,LSL#6      ;  80: * 64
+    ADDEQ  a3,a3,a3,LSL#2   ;  80: * 320
+    MOVNE  a3,a1,LSL#9      ; 132: * 512
+    ADDNE  a3,a3,a1,LSL#4   ; 132: * 528
+    SUB    sl,sl,a3
+    SUB    fp,sl,v1,LSL#2
+    BL     scr_pmapdown
+
+    ; Scroll sprite   
+    LDR    ip,=scr_screen              
+    LDR    v1,[ip,#WIDTH]
+    CMP    v1,#80
+    LDR    sl,[ip,#SPRITE_TOP]
+    MOVEQ  a1,a1,LSL#6      ; * 64
+    ADDEQ  a1,a1,a1,LSL#2   ; * 320 bytes/line
+    MOVNE  a3,a1,LSL#9      ; * 512
+    ADDNE  a1,a3,a1,LSL#4   ; * 528 bytes/line
+
+    ADD    a1,a1,a1,LSL#3   ; *9 (9 lines of 320 bytes/char)
+    SUB    sl,sl,a1
+    SUB    fp,sl,v1,LSL#5
+    SUB    fp,fp,v1,LSL#2
+    BL     scr_partdown
+
+    LDMFD  sp!,{v1-v6,sl,fp,ip,pc}
+        
+;--- scr_flashprocess ---------------------------------------------------------
+
+    EXPORT scr_flashprocess
+    IMPORT scr_direct2 
+    IMPORT scr_end
+    IMPORT scr_start
+scr_flashprocess
+    STMFD sp!,{v1-v6,lk}
+    MOV v3,a1
+    LDR v1,=scr_screen
+    LDR a1,[v1,#WIDTH]
+    MOV v6,a1,LSL#4    ; *16
+    ADD v6,v6,a1,LSL#3 ; *16+*8=*24
+    LDR v1,[v1,#WORDMAP]
+    MOV v2,#0
+    MOV v4,#0
+    MOV v5,#0
+scr_flashloop 
+    LDR a1,[v1,v4,LSL#2]
+    TST a1,#FLASH
+    BEQ scr_flashloop3
+    CMP v3,#0
+    BEQ scr_flashloop1
+    TST a1,#FLASHHIDE    ; phase=1
+    BEQ scr_flashloope
+    BIC a1,a1,#FLASHHIDE
+    MOV a2,v4
+    ADD v2,v2,#1
+    BL  scr_direct2
+    B   scr_flashloope
+scr_flashloop1           ; phase=0
+    TST a1,#FLASHHIDE
+    BNE scr_flashloope
+    ORR a1,a1,#FLASHHIDE
+    MOV a2,v4   
+    ADD v2,v2,#1
+    BL  scr_direct2
+    B   scr_flashloope
+scr_flashloop3
+    CMP v2,#0
+    BEQ scr_flashloope
+    BL  scr_end
+    BL  scr_start
+    MOV v2,#0
+    MOV v5,#1
+scr_flashloope
+    ADD v4,v4,#1
+    CMP v4,v6
+    BNE scr_flashloop
+    ADD a1,v2,v5
+    LDMFD sp!,{v1-v6,pc}
+        
+;--- scr_validate -------------------------------------------------------------
+                  
+    EXPORT scr_docursor
+scr_docursor
+    LDR    a4,=scr_screen
+    LDR    a4,[a4,#CURSORSTATUS]
+    CMP    a4,a1
+    MOVEQ  pc,lk
+
+    STMFD  sp!,{v1-v6,sl,fp,ip,lk}
+    LDR    v6,=scr_screen
+
+    STR    a1,[v6,#CURSORSTATUS]
+    LDR    a2,[v6,#CURX]
+    LDR    a3,[v6,#CURY]
+    LDR    v1,[v6,#WORDMAP]
+
+    LDR    a4,[v6,#WIDTH]
+    CMP    a4,#80
+    MOVEQ  a4,a3,LSL#6      ;  80: (y * 64)
+    ADDEQ  a4,a4,a3,LSL#4   ;  80: (y * 64 + y * 16)
+    MOVNE  a4,a3,LSL#7      ; 132: (y * 128)
+    ADDNE  a4,a4,a3,LSL#2   ; 132: (y * 128 + y * 4)
+    ADD    a4,a4,a2         ; Add x on
+    LDR    a4,[v1,a4,LSL#2]
+    CMP    a1,#0
+    BICEQ  a1,a4,#CURSOR
+    ORRNE  a1,a4,#CURSOR
+    B      scr_direct1
+
+;------------------------------------------------------------------------------
+
+    AREA   READWRITE
+
+    EXPORT scr_colours
+scr_colours
+    DCD    &00000000, &11111111, &22222222, &33333333
+    DCD    &44444444, &55555555, &66666666, &77777777
+    DCD    &88888888, &99999999, &aaaaaaaa, &bbbbbbbb
+    DCD    &cccccccc, &dddddddd, &eeeeeeee, &ffffffff
+
+;------------------------------------------------------------------------------
+
+    END
+        

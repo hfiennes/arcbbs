@@ -1,0 +1,4 @@
+DOING "Timeup"
+PROMPT "Select:"
+W,"Write to sysop","WRITE 0 1","",0,NONE
+L,"Logoff","LOGOFF","",0,NONE

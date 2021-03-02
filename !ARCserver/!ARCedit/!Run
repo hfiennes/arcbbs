@@ -1,0 +1,3 @@
+WimpSlot -min 128k -max 128k
+Set ARCedit$Dir <Obey$Dir>
+Run <ARCedit$Dir>.!RunImage %*0

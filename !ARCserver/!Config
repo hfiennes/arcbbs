@@ -1,0 +1,66 @@
+|
+| !ARCbbs !Config file, v1.10 22-December-1992
+|
+
+|
+| Port configuration
+|
+Set ARCbbs$ports      ""
+Set ARCbbs$mailports  ""
+
+|
+| General options
+|
+Set ARCbbs$usage      "N"
+Set ARCbbs$spark      "N"
+Set ARCbbs$chat       "Y"
+Set ARCbbs$newmail    "1"
+Set ARCbbs$eventtime  "02:30"
+Set ARCbbs$event      <ARCserver$Dir>.Event
+|Set ARCbbs$theworks   "yes"
+Set Fortune$Data      <ARCserver$Dir>.Fortunes
+
+|
+| File paths
+|
+Set ARCbbs$text       <ARCserver$Dir>.Text
+Set ARCbbs$menutext   <ARCserver$Dir>.Menu.Text
+Set ARCbbs$menudata   <ARCserver$Dir>.Menu.Data
+Set ARCbbs$filedata   <ARCserver$Dir>.File.Data
+Set ARCbbs$userdata   <ARCserver$Dir>.User.Data
+Set ARCbbs$maildata   <ARCserver$Dir>.Mail.Data
+Set ARCbbs$areadata   <ARCserver$Dir>.Area
+Set ARCbbs$temp       <ARCserver$Dir>.Temp
+Set ARCbbs$miscdata   <ARCserver$Dir>.Misc.Data
+Set ARCbbs$prompts    <ARCserver$Dir>.Menu.Prompts
+Set ARCbbs$modems     <ARCserver$Dir>.Misc.Modems
+Set ARCbbs$upload     <ARCserver$Dir>.Temp.Upload
+Set ARCbbs$errorlog   <ARCserver$Dir>.^.ErrorLog
+Set ARCbbs$systemlog  <ARCserver$Dir>.^.SystemLog
+
+|
+| Modem types for each line. 9-12 are local logon lines
+|
+Set Modem$port0       ""
+Set Modem$port1       ""
+Set Modem$port2       ""
+Set Modem$port3       ""
+Set Modem$port4       ""
+Set Modem$port5       ""
+Set Modem$port6       ""
+Set Modem$port7       ""
+Set Modem$port8       ""
+Set Modem$port29      "local"
+Set Modem$port30      "local"
+Set Modem$port31      "local"
+Set Modem$port32      "local"
+
+|
+| Fidonet stuff
+|
+|Set ARCbbs$Mailer         <Binkley$Dir>
+|Set ARCbbs$MailerTaskName "BinkleyTerm_%d"
+|Set ARCbbs$Inbound        <ARCbbs$Mailer>.Inbound
+|Set ARCbbs$OutboundBase   <ARCbbs$Mailer>
+|Set ARCbbs$Nodelist       <ARCbbs$Mailer>.Nodelist
+|Set ARCbbs$oldarcmail     <ARCbbs$Inbound>.Inbound.Backup

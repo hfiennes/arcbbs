@@ -1,0 +1,3 @@
+WimpSlot -min 480k -max 480k
+Set ARCbbs$Dir <Obey$Dir>
+Run <ARCbbs$Dir>.!RunImage %*0

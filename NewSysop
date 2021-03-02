@@ -1,0 +1,45 @@
+Hi (insert your name):
+
+At last! Version 1.62. On the disk is the main Archive with the whole BBS in
+it, the system file creator and the manual. Spark 2 is also supplied free
+with ARCbbs, and you can use this to dearc the v162 file (copy it to
+hard disk first, it's quicker then). Spark 2 also needs to be loaded if your
+BBS is to use the upload/download messages options as ARCbbs sends commands
+to it using wimp messages. Note: the latest version of Spark (2.16) is
+supplied, this will also dearc zip's, lzh's, zoo's, tar's and compress files.
+
+Disk 2 contains fidonet bits - these are without docs (you need the PC
+binkley docs) and the whole arc (fidokit) is PD. If you want to connect
+your BBS to fidonet, you need that file and a lot of effort!
+
+Note that this version has been compiled with C release 4 and hence
+requires version 3.75 of the C library (supplied).
+
+Basically, dearc the directory to your hard disk, run createsys to generate
+your files (say max of 512 or 1024 users and 2000 files or whatever you
+feel necessary). The number of users is generally the maximum you expect to
+have - less than 512 isn't usually a good idea, although you CAN expand the
+file later if you overrun (ask me how). The file setup just creates the
+correct number of directories on the hard disk for the files to go in: NOTE!
+The disk MUST be E format as it expects to store 50 files per directory.
+
+Inside the !ARCserver directory look in Misc.Modems to find a control file
+for your modem, or create one, and tell the BBS about it in
+!ARCserver.!Config. The BBS will now run. Load the user editor by clicking
+on the edit user option on the icon bar menu (don't bother following the
+arrow). User 0 will be displayed: this is the 'default user': all new users
+are cloned from this so this must be setup to the default userlevels, flags,
+etc you want a new user to posess. A 'time' value of (say) 30 minutes is fine,
+and make sure you set the 'level' to greater than zero otherwise no new
+users will be able to gain access to the BBS - userlevel 0 means 'barred'.
+(make sure you set the 'in use' box before writing user 0!
+
+Now you should be able to logon locally as a new user (click on the 'local
+logon' option) - you will be given usernumber 1. Then, using the user
+editor, edit user 1 to have the sysop flag set and appropriate time limits,
+ratios, etc. Then, all you have to do is use the area editor to create the
+various filebase/message areas you want and you're away! When you have your
+basic system up & running then you can edit your menu structure: it's best
+to leave this until you have working message and filebases though!
+
+Hugo

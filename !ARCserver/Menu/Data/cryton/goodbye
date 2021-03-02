@@ -1,0 +1,10 @@
+| Goodbye
+DOING "Logoff"
+PROMPT "{bfgbg wb} Goodbye {fgbg rw} Command {bg n} "
+|
+M,Main menu,GOTO mainmenu
+W,Write to sysop,WRITE 0 1
+L,Logoff,LOGOFF
+X,Expert/novice,TOGFLAGS U3
+/,,GOTO slash./
+|

@@ -1,0 +1,7 @@
+ECHO "{std cls bfgbg wb}  ___       __   __{eol |}" 
+ECHO "   |  \/\/ (__) (__                                              {fg c}Online users{eol |}"
+ECHO "{eol std | |}"  
+ONLINE
+ECHO "{_>0023 bfgbg wb}                                Press any key{eol std}"
+ANYKEY
+GOTO mainmenu

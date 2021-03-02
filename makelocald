@@ -1,0 +1,2 @@
+cc localdown -c -I$.risc_oslib
+link -O !LocalDL.!RunImage o.localdown $.clib.o.stubs $.risc_oslib.o.risc_oslib

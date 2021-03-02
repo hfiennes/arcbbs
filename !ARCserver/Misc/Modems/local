@@ -1,0 +1,15 @@
+; Pipe driver
+;
+driver dummy
+port 0
+;
+txspeed 19200
+rxspeed 19200
+;
+modem pipe
+baud lock
+ringresponse ata
+;
+welcometext <arcbbs$text>.logon1
+;
+modeminit Hello|

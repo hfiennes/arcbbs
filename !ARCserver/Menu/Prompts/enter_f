@@ -1,0 +1,13 @@
+
+{std bfg c}[{fg y}?{fg c}]{fg y} Show editor commands
+{std bfg c}[{fg y}L{fg c}]{fg w}ist message
+{fg c}[{fg y}E{fg c}]{fg w}dit line
+{fg c}[{fg y}D{fg c}]{fg w}elete line
+{fg c}[{fg y}I{fg c}]{fg w}nsert line
+{fg c}[{fg y}F{fg c}]{fg w}ind and replace
+{fg c}[{fg y}C{fg c}]{fg w}entre previous line
+{fg c}[{fg y}M{fg c}]{fg w}odify short description
+{fg c}[{fg y}/{fg c}]{fg w} Type a '/'
+{fg c}[{fg y}A{fg c}]{fg w}bort long description
+{fg c}[{fg y}S{fg c}]{fg w}ave long description
+{fg c}[{fg y}Delete{fg c}]{fg w} Cancel send

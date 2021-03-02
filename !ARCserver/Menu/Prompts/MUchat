@@ -1,0 +1,14 @@
+{std bfgbg wb} MultiUser Chat {bg n} Help
+
+{fg c}/h            {fg y}Gives this list
+{fg c}/x            {fg y}Exit chat
+{fg c}/!<port><msg> {fg y}Whisper to a user. eg '/!3 Hi fred!' will whisper
+              'Hi fred!' to the user on port 3.
+{fg c}/s            {fg y}List of users on system & what they are upto.
+{fg c}/p<port>      {fg y}Page user on specified port to come in and have a chat.
+{fg c}-<text>       {fg y}Allows you to enter things like '-smiles' which will appear
+              on other user's screens as 'xxx smiles', allowing you to
+              have expressions.
+
+{fg r}Please keep MultiUser chats short.....remember other users are waiting!
+{std}

@@ -1,0 +1,7 @@
+WimpSlot -min 64k -max 64k
+Set SparkMail$Dir <Obey$Dir>
+IconSprites <Obey$Dir>.!Sprites
+RMensure SharedClibrary 3.75 RMload System:modules.Clib
+RMensure SharedClibrary 3.75 Error 0 You need SharedClibrary 3.75 or later
+Run <Obey$Dir>.!RunImage %*0
+Set SparkMail$Return <Sys$ReturnCode>

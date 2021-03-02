@@ -1,0 +1,17 @@
+{std cls bold}
+{_>0019 bg b eol _>4719 fg c _t6} left {fgbg rw} ___       __   __{eol}
+{fgbg wb} Shortcuts: {fg y}/main    {fg w}Main menu{eol _>5820 fgbg rw}  |  \/\/ (__) (__{eol}
+{fgbg wb}            {fg y}/msg     {fg w}Message bases{eol _>5821 fgbg rw eol}
+{fgbg wb}            {fg y}/mu      {fg w}Multiuser chat{eol _>5822 fgbg bw}  F i l e  B a s e{eol}
+{fgbg wb} Selected filebase is {fg r _ib eol _>5823 bg w eol _>0000}
+
+{bfgbg cn}[{fg y}U{fg c}]{fg w}pload file(s)                        {fg c}[{fg y}D{fg c}]{fg w}ownload file(s)
+{fg c}[{fg y}S{fg c}]{fg w}hort filelist                        {fg c}[{fg y}L{fg c}]{fg w}ong filelist
+{fg c}[{fg y}V{fg c}]{fg w}iew queue                            {fg c}[{fg y}C{fg c}]{fg w}lear queue
+{fg c}[{fg y}G{fg c}]{fg w}rab queue                            {fg c}[{fg y}1{fg c}]{fg w} Global file locate
+{fg c}[{fg y}2{fg c}]{fg w} Local file locate                   {fg c}[{fg y}Z{fg c}]{fg w}ip through new files
+{fg c}[{fg y}*{fg c}]{fg w} Select a new filebase to access     {fg c}[{fg y}M{fg c}]{fg w}ain menu
+
+{fg c}[{fg y}={fg c}]{fg w} Show all filebases                  {fg c}[{fg y}${fg c}]{fg w} List my filebases
+{fg c}[{fg y}+{fg c}]{fg w} Join a filebase                     {fg c}[{fg y}-{fg c}]{fg w} Resign from a filebase
+{_>0000}

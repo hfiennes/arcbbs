@@ -1,0 +1,31 @@
+<ARCbbs$text>.Answers.1
+~!~Are you sure you want to answer this [new 16/6/91] questionnaire?
+ #GOTO cont# Yes
+ No
+
+#END
+#LABEL cont
+Would you be willing to pay a charge of 3p per minute (and a local call)
+to access Cryton from anywhere in the country at up to 2400 baud with
+MNP 5? Note: At all times, this works out cheaper than a 'b' or 'b1' rate
+call, and only just more expensive than an 'a' rate call, and existing
+0749 numbers would have no time charges.
+ Yes
+ No
+
+Would you prefer to have the system detailed above or to have lines in
+London only with a 1p per minute time charge?
+ Whole country at 3p/minute
+ London only at 1p/minute
+ London with no time charge but with an increased subscription rate
+ No
+
+Would you be willing to pay a small subscription to this BBS when we have
+external mail, Usenet read/write access and lots of other bits?
+ Yes (minimum charge of 3 pounds/month, ie 300 mins/month free at 3p/min)
+ Yes (flat charge of 7 pounds per month with free access to london lines)
+ No, but I might pay less
+ No, I don't want to pay at all
+
+Thanks for answering the questionnaire!
+#END

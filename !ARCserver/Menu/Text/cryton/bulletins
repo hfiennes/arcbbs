@@ -1,0 +1,12 @@
+{std cls bold}
+{_>0019 bg b eol _>4619 fg c _t6} left {fgbg rw}  ___       __   __{eol}
+{fgbg wb} Shortcuts: {fg y}/main    {fg w}Main menu{eol _>5720 fgbg rw}   |  \/\/ (__) (__{eol}
+{fgbg wb}            {fg y}/msg     {fg w}Message bases{eol _>5721 fgbg rw eol}
+{fgbg wb}            {fg y}/mu      {fg w}Multiuser chat{eol _>5722 fgbg bw}  B u l l e t i n s{eol}
+{fgbg wb eol _>5723 bg w eol _>0000}
+
+{bfgbg cn}[{fg y}0{fg c}]{fg w} System information                 {fg c}[{fg y}1{fg c}]{fg w} About this BB software
+{fg c}[{fg y}2{fg c}]{fg w} Other ARCbbs boards                {fg c}[{fg y}3{fg c}]{fg w} Coming soon!!!
+{fg c}[{fg y}4{fg c}]{fg w} The Cryton Netwerk!                {fg c}[{fg y}5{fg c}]{fg w} Message upload format
+
+{fg c}[{fg y}M{fg c}]{fg w}ain menu{_>0000}

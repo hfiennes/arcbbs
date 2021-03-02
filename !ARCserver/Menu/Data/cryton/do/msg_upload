@@ -1,0 +1,7 @@
+ECHO "{cls bfgbg wb}  ___       __   __{eol |}" 
+ECHO "   |  \/\/ (__) (__                                           {fg c}Upload messages{eol |}"
+ECHO "{eol std | |}"  
+UPLOAD 0
+ECHO "{_>0023 bfgbg wb}                                Press any key{eol std}"
+ANYKEY
+GOTO public

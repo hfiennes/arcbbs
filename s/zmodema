@@ -1,0 +1,1013 @@
+;                    _____________________________________________
+;                  [>                                             <]
+;Project           [> ARCterm 7                                   <]
+;Author            [> Hugo Fiennes                                <]
+;Date started      [> 04-April-1989                               <]
+;                  [>                                             <]
+;Module name       [> Zmodem low-level routines                   <]
+;Current version   [> 00.17                                       <]
+;Version date      [> 30-November-1991                            <]
+;State             [> Unfinished                                  <]
+;                  [>                                             <]
+;                  [>  This source is COPYRIGHT (c) 1989/90/91 by <]
+;                  [>      Hugo Fiennes of The Serial Port        <]
+;                  [>_____________________________________________<]
+
+; SWI values
+
+OK      *  0
+ERROR   * -1
+TIMEOUT * -2
+RCDO    * -3
+
+ZCRCE   * "h"
+ZCRCG   * "i"
+ZCRCQ   * "j"
+ZCRCW   * "k"
+ZRUB0   * "l"
+ZRUB1   * "m"
+ZCAN    * 16
+ZBIN    * "A"
+ZHEX    * "B"
+ZBIN32  * "C"
+ZPAD    * "*"
+ZDATA   * 10
+ZDLE    * 24
+XON     * 17
+XOFF    * 19
+
+GOTOR   * 256
+GOTCRCE * (ZCRCE:OR:GOTOR)
+GOTCRCG * (ZCRCG:OR:GOTOR)
+GOTCRCQ * (ZCRCQ:OR:GOTOR)
+GOTCRCW * (ZCRCW:OR:GOTOR)
+GOTCAN  * (24:OR:GOTOR)
+
+; ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+; Register names   Modified for new call standard (GOD acorn, I wish you'd
+;                  stop chaging your mind...)
+; ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+a1 RN 0
+a2 RN 1
+a3 RN 2
+a4 RN 3
+v1 RN 4
+v2 RN 5
+v3 RN 6
+v4 RN 7
+v5 RN 8
+v6 RN 9
+sl RN 10
+fp RN 11
+ip RN 12
+sp RN 13
+lk RN 14
+pc RN 15
+
+r0 RN 0
+r1 RN 1
+r2 RN 2
+r3 RN 3
+r4 RN 4
+r5 RN 5
+r6 RN 6
+r7 RN 7
+r8 RN 8
+r9 RN 9
+r10 RN 10
+r11 RN 11
+r12 RN 12
+r13 RN 13
+r14 RN 14
+
+    AREA |C$$code|, CODE, READONLY
+
+    IMPORT  Txhdr
+    IMPORT  port_txw
+    IMPORT  port_rx
+    IMPORT  port_rxbuffer
+    IMPORT  window_poll
+    IMPORT  port_dcd
+;    IMPORT  zmodem_abort
+;    IMPORT  continue_pressed
+    IMPORT  Rxtimeout
+               
+lastsent
+    DCD     0
+
+;/*
+; * Send character c with ZMODEM escape sequence encoding.
+; *  Escape XON, XOFF. Escape CR following @ (Telenet net escape)
+; */
+
+    EXPORT  zsendline
+zsendline
+    STMFD   sp!,{v1,lk}
+    MOV     v1,a1
+    AND     a2,a1,#&7f
+    CMP     a2,#24
+    BNE     zsendline_0
+    MOV     a1,#24
+    BL      port_txw
+    EOR     a1,v1,#&40
+    STR     a1,lastsent
+    BL      port_txw
+    LDMFD   sp!,{v1,pc}^
+zsendline_0
+    CMP     a2,#13
+    BNE     zsendline_1
+    LDR     a2,lastsent
+    AND     a2,a2,#&7f
+    CMP     a2,#64    
+    MOVNE   a1,v1
+    BNE     zsendline_01
+    MOV     a1,#24
+    BL      port_txw
+    EOR     a1,v1,#&40
+zsendline_01
+    STR     a1,lastsent
+    BL      port_txw
+    LDMFD   sp!,{v1,pc}^
+zsendline_1
+    CMP     a2,#16
+    CMPNE   a2,#17
+    CMPNE   a2,#19
+    BNE     zsendline_2
+    MOV     a1,#24
+    BL      port_txw
+    EOR     a1,v1,#&40
+zsendline_2
+    STR     a1,lastsent
+    BL      port_txw
+    LDMFD   sp!,{v1,pc}^
+
+;int readock(int tenths)
+
+    EXPORT  readock
+readock
+    STMFD   sp!,{v1,lk}
+    ADD     a1,a1,a1,LSL#2
+    MOV     v1,a1,LSL#1  
+
+    BL      port_rx         ; Check first for a quick one!
+    CMP     a1,#-1
+    LDMNEFD sp!,{v1,pc}^
+
+    SWI     &42             ; ReadMonotonicTime
+    ADD     v1,v1,a1
+readock_0
+    BL      port_rxbuffer
+    CMP     a1,#0
+    BLNE    port_rx
+    LDMNEFD sp!,{v1,pc}^
+
+;    LDR     a2,=continue_pressed
+;    LDR     a1,[a2]
+;    CMP     a1,#0
+;    MOVNE   a1,#0
+;    STRNE   a1,[a2]
+;    MOVNE   a1,#TIMEOUT
+;    LDMNEFD sp!,{v1,pc}^
+
+;    LDR     a1,=zmodem_abort
+;    LDR     a1,[a1]
+;    CMP     a1,#0
+;    MOVNE   a1,#RCDO
+;    LDMNEFD sp!,{v1,pc}^
+
+    SWI     &42
+    CMP     a1,v1
+    MOVGT   a1,#TIMEOUT
+    LDMGTFD sp!,{v1,pc}^
+    BL      window_poll
+    B       readock_0
+                        
+;/*
+; * Read a character from the modem line with timeout.
+; *  Eat parity, XON and XOFF characters.
+; */
+
+    EXPORT  noxrd7
+noxrd7
+    STMFD   sp!,{lk}
+    LDR     a1,=Rxtimeout
+    LDR     a1,[a1]
+    BL      readock
+    CMP     a1,#0
+    ANDGE   a1,a1,#&7f
+    LDMFD   sp!,{pc}^
+           
+;/*
+; * Read a byte, checking for ZMODEM escape encoding
+; *  including CAN*5 which represents a quick abort
+; */
+      
+    EXPORT  zdlread
+zdlread
+    STMFD   sp!,{v1,lk}
+    LDR     a1,=Rxtimeout
+    LDR     v1,[a1]
+    MOV     a1,v1
+    BL      readock
+    CMP     a1,#24
+    LDMNEFD sp!,{v1,pc}^
+    MOV     a1,v1
+    BL      readock
+    CMP     a1,#0
+    LDMLTFD sp!,{v1,pc}^
+    CMP     a1,#24
+    BNE     swt
+    MOV     a1,v1
+    BL      readock
+    CMP     a1,#0
+    LDMLTFD sp!,{v1,pc}^
+    CMP     a1,#24
+    BNE     swt
+    MOV     a1,v1
+    BL      readock
+    CMP     a1,#0
+    LDMLTFD sp!,{v1,pc}^
+    CMP     a1,#24
+    BNE     swt
+    MOV     a1,v1
+    BL      readock
+    CMP     a1,#0
+    LDMLTFD sp!,{v1,pc}^
+swt
+    CMP     a1,#24
+    MOVEQ   a1,#280        ; GOTCAN
+    LDMEQFD sp!,{v1,pc}^
+    CMP     a1,#ZCRCE      ; ZCRCE
+    CMPNE   a1,#ZCRCG      ; ZCRCG
+    CMPNE   a1,#ZCRCQ      ; ZCRCQ
+    CMPNE   a1,#ZCRCW      ; ZCRCW
+    BNE     swt_1
+    ORR     a1,a1,#256     ; |GOTOR
+    LDMFD   sp!,{v1,pc}^
+swt_1
+    CMP     a1,#ZRUB0      ; ZRUB0
+    MOVEQ   a1,#&7f
+    LDMEQFD sp!,{v1,pc}^
+    CMP     a1,#ZRUB1      ; ZRUB1
+    MOVEQ   a1,#&ff
+    LDMEQFD sp!,{v1,pc}^
+    AND     a2,a1,#&60
+    CMP     a2,#&40
+    EOREQ   a1,a1,#&40
+    LDMEQFD sp!,{v1,pc}^
+    MOV     a1,#-1         ; ERROR
+    LDMFD   sp!,{lk,pc}^
+
+;/* Recover an integer from a header */
+
+    EXPORT  rclhdr
+rclhdr
+    LDRB    a2,[a1,#0]
+    LDRB    a3,[a1,#1]
+    LDRB    a4,[a1,#2]
+    LDRB    a1,[a1,#3]
+    ORR     a1,a2,a1,LSL#24
+    ORR     a1,a1,a3,LSL#8
+    ORR     a1,a1,a4,LSL#16
+    MOVS    pc,lk
+
+;/* Store integer pos in Txhdr */
+;void stohdr(int pos)
+;  {
+;  Txhdr[ZP0] = pos;
+;  Txhdr[ZP1] = pos>>8;
+;  Txhdr[ZP2] = pos>>16;
+;  Txhdr[ZP3] = pos>>24;
+;  }
+
+    EXPORT  stohdr
+stohdr           
+    LDR     a2,=Txhdr
+    STRB    a1,[a2,#0]
+    MOV     a1,a1,LSR#8
+    STRB    a1,[a2,#1]
+    MOV     a1,a1,LSR#8
+    STRB    a1,[a2,#2]
+    MOV     a1,a1,LSR#8
+    STRB    a1,[a2,#3]
+    MOVS    pc,lk
+ 
+
+;/* Receive data, 32 bit CRC */
+              
+c        RN 4
+cr3tab_  RN 5
+crc      RN 6
+buf      RN 7
+length   RN 8
+Rxcount_ RN 9
+    IMPORT  Rxcount
+    IMPORT  cr3tab
+    IMPORT  crctab
+    IMPORT  monputs
+    IMPORT  Rxframeind
+    EXPORT  zrdat32
+zrdat32
+    STMFD   sp!,{v1-v6,lk}
+    MOV     crc,#-1            ; crc=0xffffffff
+    MOV     buf,a1
+    MOV     length,a2
+    LDR     Rxcount_,=Rxcount
+    MOV     a1,#0
+    STR     a1,[Rxcount_]
+    LDR     cr3tab_,=cr3tab
+zrdat32_0
+    BL      zdlread
+    MOV     c,a1
+    TST     a1,#&100
+    BNE     zrdat32_1
+    SUBS    length,length,#1
+    BMI     zrdat32_e0
+    LDR     a1,[Rxcount_]      ; Get Rxcount
+    ADD     a1,a1,#1           ; Increment
+    STR     a1,[Rxcount_]      ; Store
+    STRB    c,[buf],#1         ; Store data
+
+    EOR     a1,c,crc           ; EOR them
+    AND     a1,a1,#&ff         ; Mask
+    LDR     a1,[cr3tab_,a1,LSL#2] ; Get from table
+    EOR     crc,a1,crc,LSR#8   ; Make new CRC
+    B       zrdat32_0
+
+zrdat32_crcfoo
+    MOV     c,a1
+zrdat32_1
+    CMP     c,#TIMEOUT
+    BEQ     zrdat32_e1
+    CMP     c,#RCDO
+    BEQ     zrdat32_e2
+    AND     a1,c,#&ff
+    CMP     a1,#ZCRCE
+    CMPNE   a1,#ZCRCG
+    CMPNE   a1,#ZCRCQ
+    CMPNE   a1,#ZCRCW
+    BNE     zrdat32_2
+
+    EOR     a1,a1,crc          ; EOR them
+    AND     a1,a1,#&ff         ; Mask
+    LDR     a1,[cr3tab_,a1,LSL#2] ; Get from table
+    EOR     crc,a1,crc,LSR#8   ; Make new CRC
+                    
+    BL      zdlread
+    TST     a1,#&100           ; Error, etc?
+    BNE     zrdat32_crcfoo
+    EOR     a1,a1,crc          ; EOR them
+    AND     a1,a1,#&ff         ; Mask
+    LDR     a1,[cr3tab_,a1,LSL#2] ; Get from table
+    EOR     crc,a1,crc,LSR#8   ; Make new CRC
+          
+    BL      zdlread
+    TST     a1,#&100           ; Error, etc?
+    BNE     zrdat32_crcfoo
+    EOR     a1,a1,crc          ; EOR them
+    AND     a1,a1,#&ff         ; Mask
+    LDR     a1,[cr3tab_,a1,LSL#2] ; Get from table
+    EOR     crc,a1,crc,LSR#8   ; Make new CRC
+
+    BL      zdlread
+    TST     a1,#&100           ; Error, etc?
+    BNE     zrdat32_crcfoo
+    EOR     a1,a1,crc          ; EOR them
+    AND     a1,a1,#&ff         ; Mask
+    LDR     a1,[cr3tab_,a1,LSL#2] ; Get from table
+    EOR     crc,a1,crc,LSR#8   ; Make new CRC
+
+    BL      zdlread
+    TST     a1,#&100           ; Error, etc?
+    BNE     zrdat32_crcfoo
+    EOR     a1,a1,crc          ; EOR them
+    AND     a1,a1,#&ff         ; Mask
+    LDR     a1,[cr3tab_,a1,LSL#2] ; Get from table
+    EOR     crc,a1,crc,LSR#8   ; Make new CRC
+       
+    LDR     a1,zrdat32_magic
+    TEQ     crc,a1             ; Good crc?
+    BNE     zrdat32_e4
+    MOV     a1,c
+    LDMFD   sp!,{v1-v6,pc}
+
+zrdat32_2
+    CMP     a1,#24             ; GOTCAN?
+    BNE     zrdat32_e3
+    B       zrdat32_e5
+
+;/* Receive a binary style header, 32 bit CRC */
+
+Rxtype_  RN 9
+count    RN 8
+    IMPORT  Rxtype
+    EXPORT  zrbhdr32
+zrbhdr32
+    STMFD   sp!,{v1-v6,lk}
+    MOV     crc,#-1            ; crc=0xffffffff
+    MOV     buf,a1
+    LDR     cr3tab_,=cr3tab
+    LDR     Rxtype_,=Rxtype
+
+    BL      zdlread
+    TST     a1,#&100
+    LDMNEFD sp!,{v1-v6,pc}
+    MOV     c,a1
+    STR     c,[Rxtype_]
+
+    EOR     a1,c,crc           ; EOR them
+    AND     a1,a1,#&ff         ; Mask
+    LDR     a1,[cr3tab_,a1,LSL#2] ; Get from table
+    EOR     crc,a1,crc,LSR#8   ; Make new CRC
+
+    MOV     count,#4
+zrbhdr32_0
+    BL      zdlread
+    TST     a1,#&100
+    LDMNEFD sp!,{v1-v6,pc}
+
+    STRB    a1,[buf],#1
+    
+    EOR     a1,a1,crc          ; EOR them
+    AND     a1,a1,#&ff         ; Mask
+    LDR     a1,[cr3tab_,a1,LSL#2] ; Get from table
+    EOR     crc,a1,crc,LSR#8   ; Make new CRC
+
+    SUBS    count,count,#1
+    BNE     zrbhdr32_0
+
+    MOV     count,#4
+zrbhdr32_1
+    BL      zdlread
+    TST     a1,#&100
+    LDMNEFD sp!,{v1-v6,pc}
+
+    EOR     a1,a1,crc          ; EOR them
+    AND     a1,a1,#&ff         ; Mask
+    LDR     a1,[cr3tab_,a1,LSL#2] ; Get from table
+    EOR     crc,a1,crc,LSR#8   ; Make new CRC
+
+    SUBS    count,count,#1
+    BNE     zrbhdr32_1
+       
+    LDR     a1,zrdat32_magic
+    TEQ     crc,a1             ; Good crc?
+    BNE     zrdat32_e6
+    LDR     a1,[Rxtype_]
+    LDMFD   sp!,{v1-v6,pc}
+
+;--- 32-bit magic number
+
+zrdat32_magic
+    DCD     &debb20e3
+
+;/* Receive data, 16 bit CRC */
+
+    EXPORT  zrdata
+zrdata            
+    LDR     a3,=Rxframeind
+    LDR     a3,[a3]
+    CMP     a3,#ZBIN32
+    BEQ     zrdat32
+
+    STMFD   sp!,{v1-v6,lk}
+    MOV     crc,#0             ; crc=0
+    MOV     buf,a1
+    MOV     length,a2
+    LDR     Rxcount_,=Rxcount
+    MOV     a1,#0
+    STR     a1,[Rxcount_]
+    LDR     cr3tab_,=crctab
+zrdata_0
+    BL      zdlread
+zrdata_crcfoo
+    MOV     c,a1
+    TST     a1,#&100
+    BNE     zrdata_1
+    SUBS    length,length,#1
+    BMI     zrdat32_e0
+    LDR     a1,[Rxcount_]      ; Get Rxcount
+    ADD     a1,a1,#1           ; Increment
+    STR     a1,[Rxcount_]      ; Store
+    STRB    c,[buf],#1         ; Store data
+                                 
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    EOR     crc,a1,c
+
+    B       zrdata_0
+
+zrdata_1
+    CMP     c,#TIMEOUT
+    BEQ     zrdat32_e1
+    CMP     c,#RCDO
+    BEQ     zrdat32_e2
+    AND     a1,c,#&ff
+    CMP     a1,#ZCRCE
+    CMPNE   a1,#ZCRCG
+    CMPNE   a1,#ZCRCQ
+    CMPNE   a1,#ZCRCW
+    BNE     zrdata_2
+
+    MOV     buf,c
+    AND     c,c,#&ff
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    EOR     crc,a1,c
+                    
+    BL      zdlread
+    TST     a1,#&100           ; Error, etc?
+    BNE     zrdata_crcfoo
+    MOV     c,a1
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    EOR     crc,a1,c
+
+    BL      zdlread
+    TST     a1,#&100           ; Error, etc?
+    BNE     zrdata_crcfoo
+    MOV     c,a1
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    EOR     crc,a1,c
+
+    MOV     crc,crc,LSL#16
+    MOVS    crc,crc,LSR#16
+    BNE     zrdat32_e4
+    MOV     a1,buf
+    LDMFD   sp!,{v1-v6,pc}
+
+zrdata_2
+    CMP     a1,#24             ; GOTCAN?
+    BNE     zrdat32_e3
+    B       zrdat32_e5
+
+;/* Receive a binary style header, 16 bit CRC */
+
+    EXPORT  zrbhdr
+zrbhdr
+    STMFD   sp!,{v1-v6,lk}
+    MOV     crc,#0
+    MOV     buf,a1
+    LDR     cr3tab_,=crctab
+    LDR     Rxtype_,=Rxtype
+
+    BL      zdlread
+    TST     a1,#&100
+    LDMNEFD sp!,{v1-v6,pc}
+    MOV     c,a1
+    STR     c,[Rxtype_]
+
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    EOR     crc,a1,c
+
+    MOV     count,#4
+zrbhdr_0
+    BL      zdlread
+    TST     a1,#&100
+    LDMNEFD sp!,{v1-v6,pc}
+
+    MOV     c,a1
+    STRB    c,[buf],#1
+    
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    EOR     crc,a1,c
+
+    SUBS    count,count,#1
+    BNE     zrbhdr_0
+
+    BL      zdlread
+    TST     a1,#&100
+    LDMNEFD sp!,{v1-v6,pc}
+
+    MOV     c,a1
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    EOR     crc,a1,c
+
+    BL      zdlread
+    TST     a1,#&100
+    LDMNEFD sp!,{v1-v6,pc}
+
+    MOV     c,a1
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    EOR     crc,a1,c
+
+    MOV     crc,crc,LSL#16
+    MOVS    crc,crc,LSR#16     ; Good crc?
+    BNE     zrdat32_e6
+    LDR     a1,[Rxtype_]
+    LDMFD   sp!,{v1-v6,pc}
+
+;/* Send data, 16 bit CRC */
+
+frameend RN 9
+    IMPORT  Txfcs32
+    IMPORT  flushmo
+;    IMPORT  killz
+    IMPORT  longjmp
+
+    EXPORT  zsdata
+zsdata
+    STMFD   sp!,{v1-v6,lk}
+    MOV     buf,a1
+    MOV     length,a2
+    MOV     frameend,a3
+
+;    LDR     a1,=zmodem_abort
+;    LDR     a1,[a1]
+;    CMP     a1,#0
+;    BEQ     zsdata_
+;    LDR     a1,=killz
+;    MOV     a2,#1
+;    LDMFD   sp!,{v1-v6,lk}
+;    B       longjmp
+
+zsdata_
+    LDR     a1,=Txfcs32
+    LDR     a1,[a1]
+    CMP     a1,#0
+    BEQ     zsdata_0a
+    MOV     a1,buf
+    MOV     a2,length
+    MOV     a3,frameend
+    BL      zsda32
+    BAL     zsdata_1
+                     
+zsdata_0a
+    MOV     crc,#0
+    LDR     cr3tab_,=crctab
+    CMP     length,#0
+    BEQ     zsdata_0b
+zsdata_0
+    LDRB    a1,[buf],#1
+    MOV     c,a1
+    BL      zsendline
+                   
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    EOR     crc,a1,c
+    
+    SUBS    length,length,#1
+    BNE     zsdata_0
+                     
+zsdata_0b
+    MOV     a1,#ZDLE
+    BL      port_txw
+    MOV     a1,frameend
+    BL      port_txw
+
+    MOV     c,frameend
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    EOR     crc,a1,c
+
+    MOV     c,#0
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    EOR     crc,a1,c
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    EOR     crc,a1,c
+
+    MOV     a1,crc,LSR#8
+    BL      zsendline
+    MOV     a1,crc
+    BL      zsendline
+       
+zsdata_1
+    CMP     frameend,#ZCRCW
+    LDMNEFD sp!,{v1-v6,pc}
+    MOV     a1,#XON
+    BL      port_txw
+    BL      flushmo
+    LDMFD   sp!,{v1-v6,pc}
+
+;/* Send binary header, 16 bit CRC */
+
+type RN 9
+
+    EXPORT  zsbhdr
+zsbhdr
+    STMFD   sp!,{v1-v6,lk}
+    MOV     type,a1
+    MOV     buf,a2
+    LDR     cr3tab_,=crctab
+
+    MOV     a1,#ZPAD
+    BL      port_txw
+    MOV     a1,#ZDLE
+    BL      port_txw
+
+    LDR     a1,=Txfcs32
+    LDR     a1,[a1]
+    CMP     a1,#0
+    BEQ     zsbhdr_0a
+
+    MOV     a1,buf
+    MOV     a2,type
+    BL      zsbh32
+    BAL     zsbhdr_1
+
+zsbhdr_0a
+    MOV     crc,#0
+    MOV     a1,#ZBIN
+    BL      port_txw
+    MOV     a1,type
+    BL      zsendline   
+
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    EOR     crc,a1,type
+   
+    MOV     count,#4
+zsbhdr_0
+    LDRB    c,[buf],#1
+
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    EOR     crc,a1,c
+
+    MOV     a1,c
+    BL      zsendline
+
+    SUBS    count,count,#1
+    BNE     zsbhdr_0
+
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    MOV     crc,a1
+    MOV     a3,crc,LSR#8
+    AND     a3,a3,#&ff
+    LDRB    a1,[cr3tab_,a3,LSL#1]
+    ADD     cr3tab_,cr3tab_,#1
+    LDRB    a2,[cr3tab_,a3,LSL#1]
+    SUB     cr3tab_,cr3tab_,#1
+    ORR     a1,a1,a2,LSL#8
+    EOR     a1,a1,crc,LSL#8
+    MOV     crc,a1
+
+    MOV     a1,crc,LSR#8
+    BL      zsendline
+    MOV     a1,crc
+    BL      zsendline
+
+zsbhdr_1
+    CMP     type,#ZDATA
+    BLEQ    flushmo
+                    
+    LDMFD   sp!,{v1-v6,pc}
+
+;/* Send data, 32 bit CRC */
+
+    EXPORT  zsda32
+zsda32
+    STMFD   sp!,{v1-v6,lk}
+    MOV     buf,a1
+    MOV     length,a2
+    MOV     frameend,a3
+
+    MOV     crc,#-1
+    LDR     cr3tab_,=cr3tab
+    CMP     length,#0
+    BEQ     zsda32_0b
+zsda32_0
+    LDRB    a1,[buf],#1
+    MOV     c,a1
+    BL      zsendline
+                   
+    EOR     a1,crc,c           ; EOR them
+    AND     a1,a1,#&ff         ; Mask
+    LDR     a1,[cr3tab_,a1,LSL#2] ; Get from table
+    EOR     crc,a1,crc,LSR#8   ; Make new CRC
+
+    SUBS    length,length,#1
+    BNE     zsda32_0
+                     
+zsda32_0b
+    MOV     a1,#ZDLE
+    BL      port_txw
+    MOV     a1,frameend
+    BL      port_txw
+                     
+    MOV     c,frameend
+    EOR     a1,crc,c           ; EOR them
+    AND     a1,a1,#&ff         ; Mask
+    LDR     a1,[cr3tab_,a1,LSL#2] ; Get from table
+    EOR     crc,a1,crc,LSR#8   ; Make new CRC
+
+    MVN     crc,crc
+
+    MOV     a1,crc
+    BL      zsendline
+    MOV     a1,crc,LSR#8
+    BL      zsendline
+    MOV     a1,crc,LSR#16
+    BL      zsendline
+    MOV     a1,crc,LSR#24
+    BL      zsendline
+
+    LDMFD   sp!,{v1-v6,pc}
+
+;/* Send a binary header with 32 bit CRC */
+
+zsbh32
+    STMFD   sp!,{v1-v6,lk}
+    MOV     buf,a1
+    MOV     type,a2
+    LDR     cr3tab_,=cr3tab
+
+    MOV     a1,#ZBIN32
+    BL      port_txw
+    MOV     a1,type
+    BL      zsendline
+
+    MOV     crc,#-1
+    EOR     a1,crc,type        ; EOR them
+    AND     a1,a1,#&ff         ; Mask
+    LDR     a1,[cr3tab_,a1,LSL#2] ; Get from table
+    EOR     crc,a1,crc,LSR#8   ; Make new CRC
+
+    MOV     count,#4
+zsbh32_0
+    LDRB    c,[buf],#1
+    EOR     a1,crc,c           ; EOR them
+    AND     a1,a1,#&ff         ; Mask
+    LDR     a1,[cr3tab_,a1,LSL#2] ; Get from table
+    EOR     crc,a1,crc,LSR#8   ; Make new CRC
+
+    MOV     a1,c
+    BL      zsendline
+
+    SUBS    count,count,#1
+    BNE     zsbh32_0
+
+    MVN     crc,crc
+    MOV     a1,crc
+    BL      zsendline
+    MOV     a1,crc,LSR#8
+    BL      zsendline
+    MOV     a1,crc,LSR#16
+    BL      zsendline
+    MOV     a1,crc,LSR#24
+    BL      zsendline
+
+    LDMFD   sp!,{v1-v6,pc}
+
+;--- Various error messages
+
+zrdat32_e0
+    ADR     a1,zrdat32_e0m
+    BL      monputs
+    MOV     a1,#ERROR
+    LDMFD   sp!,{v1-v6,pc}
+
+zrdat32_e1
+    ADR     a1,zrdat32_e1m
+    BL      monputs
+    MOV     a1,c
+    LDMFD   sp!,{v1-v6,pc}
+
+zrdat32_e2
+    ADR     a1,zrdat32_e2m
+    BL      monputs
+    MOV     a1,c
+    LDMFD   sp!,{v1-v6,pc}
+
+zrdat32_e3
+    ADR     a1,zrdat32_e3m
+    BL      monputs
+    MOV     a1,#ZCAN
+    LDMFD   sp!,{v1-v6,pc}
+
+zrdat32_e4
+    ADR     a1,zrdat32_e4m
+    BL      monputs
+    MOV     a1,#ERROR
+    LDMFD   sp!,{v1-v6,pc}
+                   
+zrdat32_e5
+    ADR     a1,zrdat32_e5m
+    BL      monputs
+    MOV     a1,c
+    LDMFD   sp!,{v1-v6,pc}
+
+zrdat32_e6
+    ADR     a1,zrdat32_e6m
+    BL      monputs
+    MOV     a1,#ERROR
+    LDMFD   sp!,{v1-v6,pc}
+
+zrdat32_e0m
+    =       "ZModem data subpacket too long",0
+zrdat32_e1m
+    =       "Timeout",0
+zrdat32_e2m
+    =       "Carrier loss/abort detected",0
+zrdat32_e3m
+    =       "Sender cancelled",0
+zrdat32_e4m
+    =       "Bad data packet CRC",0
+zrdat32_e5m
+    =       "Mangled data packet",0
+zrdat32_e6m
+    =       "Bad header CRC",0
+    ALIGN
+
+;--- The end! -----------------------------------------------------------------
+
+    END

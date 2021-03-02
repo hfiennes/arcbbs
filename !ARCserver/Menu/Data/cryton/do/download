@@ -1,0 +1,7 @@
+ECHO "{cls bfgbg wb}  ___       __   __{eol |}" 
+ECHO "   |  \/\/ (__) (__                                          {fg c}Download file(s){eol |}"
+ECHO "{eol std |}"  
+DOWNLOAD C
+ECHO "{_>0023 bfgbg wb}                                Press any key{eol std}"
+ANYKEY
+GOTO file

@@ -1,0 +1,10 @@
+;
+; Trim file
+;
+; Specify message area and maximum number of messages for automatic trimming.
+;
+;Area         Max#
+;eg 
+;23            450
+
+; The end!

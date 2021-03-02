@@ -1,0 +1,8 @@
+ECHO "{std cls bfgbg wb}  ___       __   __{eol |}" 
+ECHO "   |  \/\/ (__) (__                                                  {fg c}Userlist{eol |}"
+ECHO "{eol std |}"
+USERLIST
+ECHO "{_>0023 bfgbg wb}                                Press any key{eol std}"
+ANYKEY
+ANYKEY
+GOTO mainmenu

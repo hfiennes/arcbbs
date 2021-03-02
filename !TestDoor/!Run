@@ -1,0 +1,3 @@
+Set TestDoor$Dir <Obey$Dir>
+WimpSlot -Min 16k -Max 16k
+Run <TestDoor$Dir>.!RunImage

@@ -1,0 +1,130 @@
+ARCbbs Pipe Interface
+=====================
+
+Purpose
+=======
+
+To allow people to write nifty widgets that interact with ARCbbs users, with
+little implementation headaches.
+
+Installation
+============
+
+Load the DoorModule.
+
+How it all works
+================
+
+There are 3 means of contact between ARCbbs and a door:
+
+      1. The status byte
+      2. The request/reply protocol
+      3. The input/output buffers
+
+The status byte is used by ARCbbs to indicate a connection is requested,
+and by either ARCbbs or a door to indicate that the connection has been/is
+to be terminated.
+
+The request/reply protocol is a mechanism whereby doors can read/write user
+data, messages/filebase entries, and initiate uploads/downloads. Basically,
+the door prepares a 256-byte request block and calls the doors module. ARCbbs
+polls this request block periodically [eg every wimp_poll] and if it sees a
+request, will answer it with a reply. After the request has been sent the door
+waits for a reply with another call until the reply arrives (this should be
+1 wimp_poll in most cases, except for file transfers!).
+
+The input/output buffers are 1k buffers in each direction to/from the door
+going to the BBS. The door puts stuff it wants to send to the user into the
+output buffer, which (if there is room in the serial o/p buffer) it dumps to
+the serial port, and vice-versa.
+
+In practice
+===========
+
+When an ARCbbs port initialises (either by loading or by a new call), it sets
+its message byte to 0, indicating an idle state.
+
+When a door is called using the DOOR command (door() in the script language)
+the door number passed is put in the status byte - door numbers range from
+1 to 254. ARCbbs will then wait 5 seconds for a loaded door to see the request
+and signal that it will handle the connection, by writing the value 255 to
+the status byte. The input and output buffers are cleared.
+
+Now the connection is active, data can be passed both ways in the buffer and
+requests can be serviced. If ARCbbs detects a carrier loss or the users time
+is up it will write the value 0 to the status byte - the door should recognise
+this and reset. Similarly if the door wants to clear the connection, it should
+write 0 to the status byte - ARCbbs will close the door.
+
+Technicalities
+==============
+
+DOOR <xx> where <xx> is the door number in the range 1-254 calls a door from
+ARCbbs.
+
+Currently ARCbbs_Doors has not got a SWI chunk allocated by Acorn, and so it
+uses the value &41040 as its base (&40 more than the ARCbbs_Filer module).
+
+There are some SWIs missing from the list below - they are reserved for use
+by the ARCbbs end - for example, reading and writing the other end of the
+input/output buffers.
+
+If a door closes the connection, ARCbbs will display the remainder of the
+data in the output buffer before returning to BBS control, so that doors
+can clear calls instantly but still sign off properly.
+
+It is possible to have multiple doors loaded all the time, each scanning for
+its door number at every poll, but this is wasteful. Instead, a door manager
+is more likely: this would scan for door requests and load the correct door,
+passing it the portnumber that the connection is requested on to the door.
+It looks like Dean Murphy (Svlad Cjelli) is going to do one of these, with
+nice dragging door apps in & out to configure it (ok, so that's a hint Dean).
+
+Reading and writing the status byte
+-----------------------------------
+
+Status byte values:
+
+    0 indicates no connection/disconnect please.
+    255 indicates door active.
+    1-254 indicates a pending door request.
+
+SWIs:
+
+  "ARCbbsPipes_ReadStatus"                                          (&41080)
+  in  r0=line number
+  out r0=status byte
+
+
+  "ARCbbsPipes_WriteStatus"                                         (&41081)
+  in  r0=line number
+      r1=new status byte
+
+Input & output buffers
+----------------------
+
+Note the difference between the two status calls: like the OS, the output
+buffer value DECLINES as the buffer gets fuller, the input buffer value
+INCREASES as the buffer gets fuller.
+
+  "ARCbbsPipes_InputStatus"                                         (&41082)
+  in  r0=line number
+  out r0=bytes WAITING (ie used) in buffer
+
+  "ARCbbsPipes_InputRead"                                           (&41083)
+  in  r0=line number
+  out r0=next byte or -1 if nothing to read
+
+  "ARCbbsPipes_OutputStatus"                                        (&41084)
+  in  r0=line number
+  out r0=bytes FREE (ie UNused) in buffer
+
+  "ARCbbsPipes_OutputWrite"                                         (&41085)
+  in  r0=line number
+      r1=byte to be inserted in output buffer
+
+  "ARCbbsPipes_ClearInput"                                          (&41086)
+  in  r0=line number
+
+  "ARCbbsPipes_ClearOutput"                                         (&41087)
+  in  r0=line number

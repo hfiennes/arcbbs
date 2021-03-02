@@ -1,0 +1,7 @@
+ECHO "{std cls bfgbg wb}  ___       __   __{eol |}" 
+ECHO "   |  \/\/ (__) (__                                                {fg c}Page sysop{eol |}"
+ECHO "{eol std |}"
+PAGE
+ECHO "{_>0023 bfgbg wb}                                Press any key{eol std}"
+ANYKEY
+GOTO mainmenu

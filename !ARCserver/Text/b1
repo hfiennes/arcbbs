@@ -1,0 +1,30 @@
+{cls bfgbg wb}  ___       __   __{eol} 
+   |  \/\/ (__) (__     {fg c}ARCbbs information{eol}
+{eol std}
+
+{bfg y} The ARCbbs software provides a versatile BBS base with definable menus,
+multiline support, multitasking, and comprehensive messaging and file areas.
+ Being multitasking means that your machine is not tied up when the BBS is
+being run: you can run other RISC OS tasks (memory permitting) whilst the
+BBS is loaded and running. FidoNet EchoMail and MatrixMail is supported.
+ 
+1 user (+ local logon(s)) : £ 99.95
+3 user (+ local logon(s)) : £159.95  
+  
+Multiuser systems (upto 16 users) available to approved sites. Contact
+us for more details.
+
+Utilities supplied include automatic backup, icon-driven user editor,
+conference utilities, file list generator and bulk user deleter.
+
+{fg c}ARCbbs is available from:
+
+{fg w}       The Serial Port
+       Burcott Manor
+       Wells
+       Somerset
+       BA5 1NH
+
+Voice: (0749)  72234
+Data:  (0749) 679794 / (0749) 670030
+   

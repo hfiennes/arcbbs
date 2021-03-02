@@ -1,0 +1,14 @@
+| Scratchpad menu
+DOING "Scratchpad"
+PROMPT "{bfgbg wb} Scratchpad {fgbg rw} Command {bg n} "
+|
+T,Text download,GOTO do.arc_text,,0,NONE
+1,Spark [Crunch],GOTO do.arc_crunch,,0,NONE
+2,Spark [Squash],GOTO do.arc_squash,,0,NONE
+3,Spark [Compress16],GOTO do.arc_compre,,0,NONE
+C,Continue scratchpad download,S_DOWNLOAD,,0,NONE
+M,Main menu,GOTO mainmenu,,0,NONE
+R,Return to msg menu,GOTO public,,0,NONE
+X,Expert/novice,TOGFLAGS U3,,0,NONE
+/,,GOTO slash./,,0,NONE
+|

@@ -1,0 +1,15 @@
+| Netmail
+DOING "NetMail"
+PROMPT "{bfgbg wb} NetMail {fgbg rw} Command {bg n} "
+|
+A,NetMail moderator,GOTO do.netmail_a,,>f,NONE
+B,NetMail to Noah,GOTO do.netmail_b,,>f,NONE
+C,NetMail to ARCade,GOTO do.netmail_c,,>f,NONE
+D,NetMail to Power House,GOTO do.netmail_d,,>f,NONE
+E,NetMail to DarcWorld,GOTO do.netmail_e,,>f,NONE
+F,NetMail to Daily Information,GOTO do.netmail_f,,>f,NONE
+G,NetMail to LymmLand,GOTO do.netmail_g,,>f,NONE
+M,Main menu,GOTO mainmenu,,0,NONE
+X,Expert/novice,TOGFLAGS U3,,0,NONE
+/,,GOTO slash./,,0,NONE
+|

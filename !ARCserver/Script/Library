@@ -1,0 +1,178 @@
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+// Library script file                                      1.06 02-Nov-1991 //
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+string cr[1]=$chr(13),return[1]=$chr(13),newline[2]=$chr(13)+$chr(10)
+string escape[1]=$chr(27),lf[1]=$chr(10)
+
+// Time in cs to wait for carrier/reply
+integer modem_carrierwait=4000,modem_replywait=4000
+
+$modeminput (integer maxlen,integer timeout)
+  {
+  integer start=(time()+timeout),count=0,ch
+  string abc[maxlen]
+
+  while(time()<start && count<maxlen)
+    {
+    if (port_rxbuffer()==0)
+      {
+      pause(10)
+      }
+
+    if (port_rxbuffer()!=0)
+      {
+      ch=port_rx()
+      if (ch==13 || ch==10)
+        {
+        if (ch==10)
+          {
+          $return(abc)
+          }
+        }
+      else
+        {
+        abc=abc+$chr(ch)
+        count=count+1
+        }
+      }
+    } 
+
+  $return("")
+  }
+
+$modeminput2 (integer maxlen,integer timeout,integer echo)
+  {
+  integer start=(time()+timeout),count=0,ch
+  string abc[maxlen]
+
+  while(time()<start && count<maxlen)
+    {
+    if (port_rxbuffer()==0)
+      {
+      pause(10)
+      }
+
+    if (port_rxbuffer()!=0)
+      {
+      ch=port_rx()
+      switch(ch)
+        {
+        case(13)
+          {
+          $return(abc)
+          }
+        case(8,127)
+          {
+          if (len(abc)>0)
+            {
+            abc=$left(abc,len(abc)-1)
+            prints($chr(8)+" "+$chr(8))
+            }
+          }
+        default()
+          {
+          if (ch>31)
+            {
+            if (echo)
+              {
+              vdu(ch)
+              }
+            abc=abc+$chr(ch)
+            count=count+1
+            }
+          }
+        }
+      }
+    } 
+
+  $return(abc)
+  }
+
+isalpha (string b[1])
+  {
+  integer a=asc(b)
+
+  if ((a<'A' || a>'z') || (a>'Z' && a<'a'))
+    {
+    return(0)
+    }
+  return(1)
+  }
+
+isdigit (string b[1])
+  {
+  integer a=asc(b)
+
+  if (a>='0' && a<='9')
+    {
+    return(1)
+    }
+  return(0)
+  }
+
+toupper (integer a)
+  {
+  if (a>='a' && a<='z')
+    {
+    a=a-32
+    }
+  return(a)
+  }
+
+tolower (integer a)
+  {
+  if (a>='A' && a<='Z')
+    {
+    a=a+32
+    }
+  return(a)
+  }
+
+yesno (string prompt[80],integer timeout)
+  {
+  integer t=(clock()+timeout),d=0
+
+  prints(prompt)
+  while(time()<t && d!=121 && d!=110)
+    {
+    d=tolower(port_rx())
+    pause(10)
+    }
+
+  if (d==121)
+    {
+    prints("Yes")
+    return(1)
+    }
+
+  if (d==110)
+    {
+    prints("No")
+    return(0)
+    }
+
+  return(-1)
+  }
+
+dorequest (string message[80])
+  {
+  integer d=dbox_new("request")
+
+  dbox_set(d,1,message)
+  dbox_open(d)
+  while(dbox_waitselect(d)!=0)
+    {
+    // Do nothing
+    }
+  dbox_close(d)
+  dbox_dispose(d)
+  }
+
+// file count for up and download
+integer filesdone=0
+
+// download path and path of currently running script
+string  downloadpath[130],runpath[130]

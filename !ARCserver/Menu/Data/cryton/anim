@@ -1,0 +1,13 @@
+| Your
+DOING "Amimate"
+PROMPT "{bfgbg wb} Animations {fgbg rw} Command {bg n} "
+|
+C,Cryton,TYPE <ARCbbs$text>.ansi NOPROMPT,,0,NONE
+S,Startrek,TYPE <ARCbbs$text>.VT100_trek NOPROMPT,,0,NONE
+B,Bambi,TYPE <ARCbbs$text>.bambi NOPROMPT,,0,NONE
+F,Fireworks,TYPE <ARCbbs$text>.fireworks NOPROMPT,,0,NONE
+T,Thirsty!,TYPE <ARCbbs$text>.thirsty NOPROMPT,,0,NONE
+M,Main menu,GOTO mainmenu,,0,NONE
+X,Expert/novice,TOGFLAGS U3,,0,NONE
+/,,GOTO slash./,,0,NONE
+|

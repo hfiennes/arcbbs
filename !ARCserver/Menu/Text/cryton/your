@@ -1,0 +1,11 @@
+{std cls bold}
+{_>0019 bg b eol _>4719 fg c _t6} left {fgbg rw} ___       __   __{eol}
+{fgbg wb} Shortcuts: {fg y}/main    {fg w}Main menu{eol _>5820 fgbg rw}  |  \/\/ (__) (__{eol}
+{fgbg wb}            {fg y}/msg     {fg w}Message bases{eol _>5821 fgbg rw eol}
+{fgbg wb}            {fg y}/mu      {fg w}Multiuser chat{eol _>5822 fgbg bw}   A c c o u n t{eol}
+{fgbg wb eol _>5823 bg w eol _>0000}
+                                                     
+{bfgbg cn}[{fg y}P{fg c}]{fg w}assword change                        {fg c}[{fg y}T{fg c}]{fg w}erminal change
+{fg c}[{fg y}L{fg c}]{fg w}ength of page                         {fg c}[{fg y}!{fg c}]{fg w} More? prompting
+{fg c}[{fg y}S{fg c}]{fg w}creen clearing                        {fg c}[{fg y}C{fg c}]{fg w}all rate for call costing
+{fg c}[{fg y}M{fg c}]{fg w}ain menu{_>0000}

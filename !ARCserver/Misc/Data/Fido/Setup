@@ -1,0 +1,6 @@
+;
+; Fidonet setup
+;
+OURNODE 2:252/102.0
+OURNAME Test system
+JUNKAREA 24

@@ -1,0 +1,35 @@
+#
+# Makefile for ARCbbs server
+#
+
+CC     = cc
+CFLAGS = -Wn -c -I$.RISC_OSlib -DEXT -DSERVER -throwback
+LN     = link
+LIB    = $.Clib.o.Stubs $.RISC_OSlib.o.RISC_OSlib
+
+!ARCserver.!RunImage : o.server o.modcomma o.servcomme \
+                                 o.fido_serv o.fidoa \
+                                 o.chat o.globals
+  $(LN) $(LIB) o.fido_serv o.str o.server o.modcomma o.fidoa o.servcomme o.chat o.globals o.crc -o !ARCserver.!RunImage
+  Squeeze !ARCserver.!RunImage
+
+o.server : c.server config.h servmess.h userlog.h define.h include.h
+  $(CC) $(CFLAGS) server
+
+o.modcomma : s.modcomma
+  objasm s.modcomma o.modcomma -stamp -quit
+
+o.fidoa : s.fidoa
+  objasm s.fidoa o.fidoa -stamp -quit
+
+o.fido_serv : c.fido
+  $(CC) $(CFLAGS) fido -oo.fido_serv
+
+o.servcomme : c.servcomm 
+  $(CC) $(CFLAGS) servcomm -oo.servcomme
+                                         
+o.chat : c.chat
+  $(CC) $(CFLAGS) chat
+
+o.globals : c.global
+  $(CC) $(CFLAGS) global -oo.globals

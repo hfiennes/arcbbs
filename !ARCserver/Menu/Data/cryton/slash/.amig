@@ -1,0 +1,4 @@
+PROMPT "{_>2500}ami"
+!,"","GOTO slash.help","",0,NONE
+/,"","GOTO slash./","",0,NONE
+A,"","GOTO join.amiga","",0,NONE

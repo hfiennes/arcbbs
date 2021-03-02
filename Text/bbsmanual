@@ -1,0 +1,2004 @@
+ARCbbs sysop's manual
+---------------------
+
+Release: 1.63 (2-April-1993)
+
+Note! This is a temporary manual. We're out of the 'real' paper ones: when
+we do the next reprint you will be sent one automatically.
+
+Hugo
+
+Configuration
+-------------
+
+The main system configuration is stored in the file !ARCbbs.!Config, which is 
+a plain text Obey file, editable with TWIN or !Edit. Here is a sample file:
+
+|
+| !ARCbbs !Config file, v1.04 30-Oct-1989
+|
+Set ARCbbs$usage "N"          'Y' will load !Usage when ARCbbs is run.
+Set ARCbbs$chat "Y"           Default sysop paging status. 'Y' signifies that 
+                              this defaults to paging enabled.
+Set ARCbbs$ports "05"         Port load list. These specify the slave tasks 
+                              to be loaded: "05" means load tasks for port 0 
+                              and port 5.
+Set ARCbbs$mailports "0"      Binkley port load list. If you are going to be 
+                              running Binkleyterm fidonet mailer as a front 
+                              end to the BBS (ie press <Escape> to load BBS, 
+                              etc). Put the numbers of the ports to run 
+                              binkley on in here (aswell as in ARCbbs$ports 
+                              above).
+Set ARCbbs$newmail "1"        Newmail setup. This defines which user is 
+                              automagically informed via mail when a new user 
+                              logs on. If this is "", then no user is 
+                              informed.
+Set ARCbbs$event <ARCserver$Dir>.Event
+                              Filename of the 'obey' file to be run at 2:30am 
+                              (auto-backup). To have no auto-backup, then 
+                              make the 'Event' file a null file.
+
+Set ARCbbs$text     <ARCserver$Dir>.Text
+Set ARCbbs$menutext <ARCserver$Dir>.Menu.Text
+Set ARCbbs$menudata <ARCserver$Dir>.Menu.Data
+Set ARCbbs$filedata <ARCserver$Dir>.File.Data
+Set ARCbbs$userdata <ARCserver$Dir>.User.Data
+Set ARCbbs$maildata <ARCserver$Dir>.Mail.Data
+Set ARCbbs$miscdata <ARCserver$Dir>.Misc.Data
+Set ARCbbs$prompts  <ARCserver$Dir>.Menu.Prompts
+Set ARCbbs$temp     <ARCserver$Dir>.Temp
+Set ARCbbs$modems   <ARCserver$Dir>.Misc.Modems
+Set ARCbbs$upload   <ARCserver$Dir>.Upload
+                              Location of system files.
+
+| Modem types
+Set Modem$port0 "ws3000"      These refer to the filename of the modem info
+Set Modem$port1 ""            file in the Misc.Modems directory.
+Set Modem$port2 ""
+Set Modem$port3 ""
+Set Modem$port4 ""
+Set Modem$port5 "quattro"
+Set Modem$port6 "quattro"
+Set Modem$port7 ""
+Set Modem$port8 ""
+
+The modem information file is in this format:
+
+<max tx speed>
+<max rx speed>
+<type>
+<DCD info>
+<Setbaud info>
+<ATA info>
+<welcome textfile>
+<logon password>
+<config line 1>
+<config line 2>
+<config line 3>
+<config line 4>               Config lines can be upto 40 characters long.
+
+ALL lines must be included, even if they are blank (i.e. just a LF).
+
+An example file for a Quattro modem is shown below
+
+2400
+2400
+HAYES        
+DCD          
+SETBAUD
+ATAONRING
+<ARCbbs$text>.Logon
+                              blank
+ATS0=1S9=1S10=10E0Q0V1
+                              blank
+                              blank
+                              blank
+
+  The modem type can be 'HAYES' (looks for 'CONNECT <baudrate>' or just 
+'CONNECT') when DCD goes high, or 'DUMB' which will just connect at the speed 
+specified in the first 2 lines of the modem info file when carrier goes high.
+
+  The DCD info line is mainly for testing purposes, it defines wether a 
+connection is made only when DCD is high (DCD) or doesn't matter (NODCD).
+
+  The SETBAUD line defines wether the BBS will set itself to the baudrate 
+quoted by the modem: this is the normal setting, but for modems that provide 
+data compression this needs to become 'NOSETBAUD', indicating that the BBS 
+should stay on the current high linespeed (e.g. 9600) to allow the modem to 
+make full use of the data compression. It is assumed hardware flow control is 
+wired for this option. If the parameter 'HSTSETBAUD' is used, then it is 
+assumed an HST is being used: if a non-MNP connection is established then the 
+baudrate returned by the modem is used, otherwise the high baudrate (stored 
+by &B2&W) is selected, and if any interruption is sensed by the BBS a break 
+signal is sent to the HST to clear the MNP buffers.
+
+  ATAONRING will cause ARCbbs to send ATA<cr> to the modem if it sees a RING
+code. As an alternative to setting the modem to autoanswer, this is quite
+attractive as if the BBS crashes, calls will not be answered. To turn off
+this function, make this line read NOATAONRING.
+
+  The welcome textfile line allows you to define what file is sent to the 
+user when they logon on that line. This allows you to include the correct 
+number for the port dialled in the text.
+
+  The logon password is a password which (if included) will stop any users 
+wihtout the correct password from getting to the logon prompt. The password 
+must be entered by the user EXACTLY as it appears in the file. The user has 
+one attempt only, and is not prompted. No text is echoed. If the user gets it 
+wrong, the line is dropped immediately.
+
+Menus
+-----
+
+A menu is setup by making 2 files:
+
+1)  The menu text file, this is the file that is displayed to the user 
+    containing information on the menu options.
+2)  The menu data file. This contains the actual instructions for the BBS on 
+    what task it has to carry out for each option.
+
+  The menu text file is stored in the directory 
+'<ARCserver$menutext>.pathname. menuname' (eg 
+!ARCbbs.MenuText.pathname.menuname), and the menu data file in the directory 
+'<ARCserver$menudata>.pathname.menuname' (i.e. !ARCbbs.MenuData. menuname). 
+Note both have the same name, but are in different directories. The 
+subdirectories ARE compulsory, this enforces a neater menu file layout.
+
+  When a user logs on, a GOTO is executed to the menu 
+'<ARCserver$menudata>.Logon.main'. A sample logon file is shown below:
+
+| Sample logon file
+IF L<500 PATH "sysop"
+IF L<400 PATH "subsysop"
+IF L<300 PATH "registered"
+IF L<200 PATH "normal"
+IF L<100 PATH "new"
+GOTO mainmenu
+
+  If the user's userlevel is 150, this menu will cause the bbs to setup 
+'normal' as its default menu path, and to goto 'mainmenu' (ie 
+'normal.mainmenu').
+
+The text file is just plan & simple text, using LF (ASCII 10, hex 0A) as a 
+line terminator.
+
+The data file is set out as follows:
+
+--- Start of file -------------------------------------------------------------
+| Comments/notes
+| more comments/notes
+| blah blah, any line beginning with '|' is ignored by the BBS
+BLAH
+BLAH
+BLAH
+| The lines above are compulsory commands, ie they are executed upon 
+| selection of the menu, but before the text file is displayed. NOTE: Any 
+| GOTO's in this are not executed until all other commands have been 
+| executed.
+G,"Goodbye","LOGOFF",0,NONE
+M,"Main menu","GOTO mainmenu",ff,FM1U1
+| The lines above are command lines, and are all seaparated by commas:
+|  1st option=command key. This is the key to be used to select the option,
+|     and must be in uppercase. You can temporarily disable options simply by
+|     changing the letter to lowercase.
+|  2nd option=reply. This is the string sent back to the user upon selecting
+|     the option.
+|  3rd option=command. This is the command to be executed upon selection.
+|  4th option=elsecommand. This is the command that is executed when (due to
+|     security levels, etc) the first command cannot be executed. If this is
+|     blank, then the NOACCESS message is sent.
+|  5th option=userlevel. This specifies userlevel the user must posess
+|     to select the option (in hex). eg '>10ff'. Before the userlevel you can
+|     have: '<': user's userlevel must be LESS THAN the specified one, '>':
+|     user's userlevel must be GREATER THAN the specified one, and '=': 
+|     user's userlevel must EQUAL the specified one.
+|  6th option=user info. This can be one of 2 things: (1) Flags. These are 
+|     the flags a user must posess to select the option. These can be 
+|     chained, and are in the form: Ux=Userflag x (x is a hex digit 0-f), 
+|     Mx=Menuflag x, Fx=Fileflag x. A flag string is preceded with a 'F', 
+|     e.g. 'FM1U2'. If the U,F or M is in lowercase then the specified flag 
+|     must NOT be set for the option to be accessible.
+|     (2) Usernumber. This is preceded with a 'U', and will only allow the
+|     specified user to access the option, e.g. 'U24' will only allow user 24
+|     to access the option.
+--- End of file ---------------------------------------------------------------
+
+Note that options which require a list of commands to be executed upon 
+running can be set up as follows:
+
+| 'mainmenu' data file
+O,"Option","GOTO subroutine","",0,NONE
+
+| 'subroutine' data file
+COMMAND1
+COMMAND2
+COMMAND3
+GOTO mainmenu
+
+In this way, commands 1,2 & 3 are executed from a single menu option.
+
+The menu commands provided are:
+
+Menu commands
+-------------
+
+GOTO <menuname>               Loads and executes the specified menu
+
+GOTO_P <password> <menuname>  Asks the user to enter a password, and if it 
+                              matches the password specified, a GOTO is 
+                              executed to the specified menu. NOTE: you must 
+                              specify this password in UPPERCASE, and input 
+                              from user is NOT case-sensitive.
+
+GOTO_IP <password> <menuname> Asks the user to enter a password, and if it 
+                              matches the password specified, a GOTO is 
+                              executed to the specified menu. Unlike  GOTO_P, 
+                              this does not prompt and does not echo. NOTE: 
+                              you must specify the password in UPPERCASE, and 
+                              input from user is NOT case-sensitive.
+
+IF [F<flags>|L<level>|        This can take 2 forms, 1) Flag orientated IF
+    U<usernumber>] <command>  e.g. 'IF FM1U2 GOTO specialmenu' would execute
+   [ELSE] <alternative-       a GOTO to menu 'specialmenu' ONLY if the user
+                command>]     had messageflag 1 and userflag 2 set. 2) Level 
+                              orientated, e.g. 'IF L>100 GOTO specialmenu' 
+                              would execute a GOTO to menu 'specialmenu' ONLY 
+                              if the user had a userlevel greater than 100.  
+                              For levels, you can use '<', '=' or '>' but NOT 
+                              combinations. As with the menu options, if the 
+                              flag identifier U,F or M is in lowercase then 
+                              the specifed flag must NOT be set. If the 
+                              conditions are not met then (if included) the 
+                              <alternative-command> is executed.
+
+ALERT                         This makes the doing field (see below) go red 
+                              and makes the server beep: useful for 
+                              attracting the sysop's attention when a menu 
+                              option is selected.
+
+DOING <string>                This updates the 'what each user is currently 
+                              doing' information block accessed by the 
+                              verbose information wimp-menu and by the ONLINE 
+                              command. The maximum length of <string> is 16 
+                              characters, and if spaces are required in the 
+                              string then the string should be surrounded by 
+                              quotes, "like this". This is automatically set 
+                              for sysop paging, MU chat, uploads and 
+                              downloads.
+
+DOING_ALERT <string>          This is the same as DOING combined with ALERT: 
+                              it changes the doing field and also turns it 
+                              red and beeps.
+
+PROMPT <string>               This will specify the prompt to be displayed to 
+                              the user. If the user is a novice (userflag x 
+                              set) then the menutext file is displayed, 
+                              followed by this prompt. If the user is an 
+                              expert (userflag x clear) then just this prompt 
+                              alone is shown.
+
+PATH <path>                   This specifies the path in which the BBS is to 
+                              find the menus (ie what the BBS prefixes the 
+                              menunames used in GOTOs with). For example, 
+                              'PATH registered' would make 'GOTO menu' look 
+                              for its text in the file 
+                              '<ARCbbs$menutext>.registered.menu'. The path 
+                              cannot be null, ie there must always be a path.
+
+NOACCESS [<message>]          This defines the message that will be sent to 
+                              the user if their userflags do not meet the 
+                              requirements specified in a menu data file, 
+                              GOTO_IF, or GOTO_P. If this command is used 
+                              without a <message> then no message will be 
+                              displayed.
+
+System commands
+---------------
+
+CLI                           Drops the user into BBS-cli mode, where the 
+                              user can directly type BBS commands. Not all 
+                              commands are accessible (eg SETFLAGS etc) by 
+                              normal users, but all are accessible if you are 
+                              the sysop. When in CLI mode, 'HELP' or '?' will 
+                              give you a menu of valid CLI-commands.
+
+UTILS                         Sysop utils menu. This enters the utils menu 
+                              (only accessible by users with Sysop privs) 
+                              which provides options such as read private 
+                              mail, which enables you to read any user's 
+                              mail. This is documented further in the 'Sysop 
+                              utils' section.
+
+LOGOFF                        Logs the user off politely, displaying 
+                              <ARCbbs$text>.Logoff, and updating his/her 
+                              'last read new messages' & 'last read new 
+                              files' flags.
+
+DROP                          Drops the user rudely. This (or a carrier drop) 
+                              does no update the users 'last read' files (see 
+                              above).
+
+RELOGON                       Allows the user to logon to the system again.
+
+ONLINE                        Displays a list of online users/baudrates/what 
+                              the users are doing.
+
+USERLIST                      Allows searching of the userlog given a partial 
+                              or full username.
+
+PAGE                          Pages the sysop for a chat.
+
+CHAT <channel>                Enters multiuser chat mode on the specified 
+                              chat channel. Users can only chat with other 
+                              users on the same channel.
+
+SETFLAGS <flags>              This command will set a users flags: e.g. 
+                              'SETFLAGS U5F3' will set userflag 5 and 
+                              fileflag 3 in the users userlog record.
+
+CLRFLAGS <flags>              This command will clear a users flags: e.g. 
+                              'SETFLAGS U5F3' will clear userflag 5 and 
+                              fileflag 3 in the users userlog record.
+
+TOGFLAGS <flags>              This command will toggle a users flags (on-
+                              >off, off->on): e.g. 'TOGFLAGS U5F3' will 
+                              toggle userflag 5 and fileflag 3 in the users 
+                              userlog record.
+
+SET <thing>                   This allows setting of other user parameters. 
+                              <thing> can be:
+
+                              -- User CLI parameters (prompts only)
+                              PASSWORD     : Set a new password
+                              TERMINAL     : Set a new terminaltype.
+                              -- Sysop CLI/menu only parameters
+                              RATIO        : up/download ratio
+                              TIME         : time allowed per day
+                              UPLOADS      : [+|- or value] number of uploads
+                              DOWNLOADS    : [+|- or value] number of 
+                                             downloads
+                              USERLEVEL    : User's userlevel
+                              -- User/Sysop CLI (prompts and CLI)
+                              PAGELENGTH   : [value] New pagelength
+                              MORE         : [ON|OFF] more? pauses
+                              CLEARSCREEN  : [ON|OFF] screen clearing codes?
+
+TIME [+|-|<nr>]               This sets the time allowed for this call:
+                              TIME +<nr> adds time (in minutes)
+                              TIME -<nr> subtracts time
+                              TIME <nr>  sets absolute time
+
+S_MESSAGE [PC|ARC]            File all new messages in the user's selected 
+                              conferences into a scratchpad area. If PC is 
+                              selected then lines are terminated by a CR and 
+                              a LF instead of just a LF.
+
+S_ARC [PC|ARC]                ARC a scratchpad (if it exists). This replaces 
+                              the current scratchpad with an arced form. The 
+                              form of the ARC is specified: PC for a PC 
+                              format ARC, ARC for Archimedes format.                               
+                              !Spark version 2.00 or greater MUST be loaded 
+                              for this command to work. (This is included 
+                              with ARCbbs, thanx to David Pilling).
+
+S_DOWNLOAD                    Download scratchpad. This will download the 
+                              scratchpad/arc'ed scratchpad. The user can also 
+                              queue the pad for later download.
+
+CALL [port]                   Tries to make a connection with the specified
+                              portnumber - it does this by first checking
+                              DTR on that port - if it is high it assumes
+                              the port is already in use. If low, it raises
+                              DTR and waits 5 seconds for RI (DCD) to go
+                              high, indicating connection accepted.
+                              Transparent data transfer continues until
+                              RI goes low or the caller hangs up, in which
+                              case ARCbbs will drop DTR on the port to
+                              clear the call.
+
+SETSPEED [port] [speed]       Sets port number [port] to [speed] baud. Used
+                              with the CALL command above.
+
+QUESTION <questionnaire file> See the questionnaire section of the manual for 
+                              more information.
+
+Data display commands
+---------------------
+
+TYPE <filename> [NONSTOP]     Displays the file to the user, who can abort 
+                              the display using any character. If NONSTOP is 
+                              specified then no 'pause' prompts are 
+                              displayed.
+
+TYPE_F <filename>             Displays the file to the user, who CANNOT abort 
+                              the display. If NONSTOP is specified then no 
+                              'pause' prompts are displayed.
+
+ECHO [<string>]               This will display the specified string. No 
+                              newline will be sent. To send a newline, just 
+                              user the ECHO command with no parameters, ie 
+                              'ECHO'.
+
+ANYKEY                        Waits for any key to be pressed. Use in 
+                              conjunction with ECHO for a 'press any key' 
+                              type system.
+
+CALLCOST                      This displays the time since the user connected 
+                              to the BB and also an estimation of the cost of 
+                              the call, assuming the call rate is correctly 
+                              set. (The call rate is set with CALLRATE 
+                              below).
+
+CALLRATE [L|A|1|B]            This sets the user's call costing rate (it can 
+                              also be set in the user editor). L=local rate, 
+                              A=A rate, 1=B1 rate and B=B rate.
+
+Conference commands
+-------------------
+
+CONF_LIST [MESSAGE|FILE]      This lists all message/filebases which the user 
+                              has the required privilege to join.
+
+CONF_MEMBER [MESSAGE|FILE]    This lists all message/filebases which the user 
+                              has joined.
+
+CONF_JOIN [<areanumber>]      If an areanumber is specified then the user 
+                              will be joined to the specified 
+                              conference/filebase, otherwise the user is 
+                              prompted for an areanumber to join. The user is 
+                              only allowed to join areas which they have 
+                              access.
+
+CONF_RESIGN [<areanumber>]    Identical to above, but resigns the user from 
+                              the conference/filebase.
+
+CONF_SELECT [<areanumber>]    This selects the 'current' conference/filearea 
+                              which is used when the 'C' option is specifed 
+                              for a READ/WRITE/FILELIST/FILESEARCH/UPLOAD/ 
+                              DOWNLOAD and the current area can be displayed 
+                              using %i8 and %i9 (see '%' commands for more 
+                              details).
+Message base commands
+---------------------
+
+READ [<messagebase>|C]        Enters message read mode on the specified 
+                              messagebase number. The user can read new mail, 
+                              read mail forwards/backwards and can jump to 
+                              message numbers. This is NOT to be used for the 
+                              private mail message area (0). For this, use 
+                              'CHECKMAIL'. If 'C' is specified as the 
+                              messagebase, then the currently selected 
+                              conference area is substituted.
+
+WRITE [<messagebase>|C|F]     Enters message write mode on the specified
+      [<userid>]              messagebase number. (This can be used for 
+                              private mail). The user must enter a valid 
+                              username/number for a destination of the 
+                              message, or 'All' (if the message is not to go 
+                              in the Private mail area). If the optional 
+                              <userid> is specified then the user is not 
+                              prompted for a destination. If 'C' is specified 
+                              as the messagebase, then the currently selected 
+                              conference area is substituted.
+
+                              + When writing a public message, the message 
+                              can be tagged a 'voting' message, which allows 
+                              users  to vote on the content of the message, 
+                              the tally of which is displayed with the 
+                              message text.
+
+                              + When writing a private message, the message 
+                              can be tagged a 'recorded delivery' message, 
+                              which, when read, will send back a message to 
+                              the sender confirming that the message has been 
+                              read.
+
+                              + When writing a private message, the message 
+                              can be tagged an 'express' message. This 
+                              message will be sent to the top of the 
+                              recipient's mail pile, and will be highlighted 
+                              in red in the user's mail list. Optionally (on 
+                              ARCbbs professional) a free modem can be used 
+                              to dial the user's radiopaging number to alert 
+                              the user that new express mail is waiting.
+
+                              If 'F' is specified as the message base, then 
+                              the user can enter private FidoNet Netmail: as 
+                              no credit system is currently setup, we advise 
+                              this function to be used by Sysops ONLY. You 
+                              must enter a netmail address and name. If the 
+                              message is interzone, a INTL: header is added, 
+                              and if it is to a point, TOPT is added.
+
+CHECKMAIL [<userid>]          Checks for private mail to the user, and 
+                              displays it in a neat table form 
+                              (number/from/date), allowing user to pick the 
+                              messages to read individually. The user can 
+                              reply/delete or forward the message to another 
+                              user. If the optional userid is specified then 
+                              the mail of the specified user is checked.
+
+NEWSCAN MESSAGE               This will scan all messagebases selected in the 
+                              user's conference list (not private mail) and 
+                              display any new messages left since the user's 
+                              last 'read new messages' action (NOTE this is 
+                              NOT updated on accidental line drop, it is only 
+                              updated if the user logs off with the LOGOFF 
+                              command). The [A]bort command on the message 
+                              read menu will abort the whole batch.
+
+Filebase commands
+-----------------
+
+FILELIST [<filebase>|C] SHORT Display short filelist for filebase specified. 
+                              This shows filenames/lengths/short 
+                              descriptions.  If 'C' is specified then the 
+                              current conference /filebase number will be 
+                              substituted.
+
+FILELIST [<filebase>|C] LONG  Display long filelist for filebase specified. 
+                              This shows filenames/lengths/short & long 
+                              descriptions. This pauses between files to let 
+                              the user 1) download the file. 2) queue the 
+                              file for later download with Zmodem. 3) Toggle 
+                              read direction. 4) If the file is an 'ARC' or 
+                              'SPARK' file, allow the user to view the 
+                              contents. If 'C' is specified then the current 
+                              conference/filebase number will be substituted.
+
+UPLOAD [<filebase>|C|0]       Enters file upload mode to the specified 
+                              filebase. The user can select a filetransfer 
+                              and (depending on wether the transfer is batch) 
+                              a filename, the upload a file & enter a 
+                              description. This updates upload counters and 
+                              gives a time bonus of 2x the approximate 
+                              download time of the uploaded file. If 'C' is 
+                              specified then the current conference/ filebase 
+                              number will be substituted. If '0' is specified 
+                              then the file uploaded is passed to the batch 
+                              message uploader for processing.
+
+DOWNLOAD [<filebase>|C]       Enters file download mode (download counter/ 
+                              download ratio permitting) on the filebase 
+                              specified. The user can select a transfer 
+                              protocol and filename(s) to download. If 'C' is 
+                              specified, then the current conference/filebase 
+                              number will be substituted.
+
+SHOWQUEUE                     This displays the filenames, lengths and 
+                              estimated transfer times of all the files in 
+                              the download queue, and also the total length 
+                              and download time.
+
+CLEARQUEUE                    This clears the user's current download queue.
+
+DOWNQUEUE                     This allows user to download current queue.
+
+NEWSCAN FILE                  This will scan all filebases that the user has 
+                              in their filebase list and display any new 
+                              files (in FILELIST LONG format) files uploaded 
+                              since the user's last 'read new files' action 
+                              (NOTE this is NOT updated on accidental line 
+                              drop, it is only updated if the user logs off 
+                              with the LOGOFF command). The [A]bort command 
+                              on the file read menu will abort the whole 
+                              batch.
+
+FILESEARCH [<filebase>|C]     This allows the user to enter a fragment of a 
+                              file's filename/short description from which 
+                              the BBS will locate all matching files in the 
+                              specified filebase. If 'C' is specified then 
+                              the current conference/filebase number will be 
+                              substituted.
+
+FILESEARCH_G                  This allows the user to enter a fragment of a 
+                              file's filename/short description from which 
+                              the BBS will locate all matching files in the 
+                              user's filebase list.
+
+Text file control characters
+----------------------------
+
+Any text file/prompt/ECHO outputted by the BBS can include certain control 
+characters to produce special effects.
+
+All control characters are enclosed in curly brackets {}. To display a {
+in a text file, you must use {{. Multiple controls may be present in one
+bracket set, eg {flash _i2 std}.
+
+The following control codes are prefixed by a '_'.
+
+i   System information. Followed by:
+     '0' ARCbbs version in the form:
+         'ARCbbs v0.00 (00:00:00 00-Jan-00) (c)1989 Hugo Fiennes'
+     '1' Current baudrate of line, eg '2400'
+     '2' Current linenumber, eg '5'
+     '3' Total number of calls to the system.
+     '4' Number of online ARCbbs processes, eg '4'
+     '5' Name of last caller
+     '6' Baudrate of last caller
+     '7' Time last caller was on (mmm:ss)  
+     '8' Display area number of currently selected conference.
+     '9' Display area name of currently selected conference.
+     'a' Display area number of currently selected filebase
+     'b' Display area name of currently selected filebase.
+u   User information. Followed by:
+     '0' Whole username (upto 30 characters)
+     '1' First name (all of name if there is no space in the name)
+     '2' Last name (all of name if there is no space in the name)
+     '3' Number of calls user has made.
+     '4' Number of uploads user has made.
+     '5' Number of downloads user has made.
+     '6' Up/download ratio
+     '7' Userlevel (in hex)
+     '8' Number of private mail messages waiting
+r   User's real name
+a   Address information. Followed by:
+     '1' Line 1 of address
+     '2' Line 2 of address
+     '3' Line 3 of address
+     '4' Line 4 of address
+     '5' Postcode
+p   User's telephone number
+#   Usernumber
+s   System name, eg 'Eureka II'
+c   Cookie. Prints out a random cookie from a library of 7177. A real must 
+    for a logon file! These maybe multi-line and 'c' is the only option to 
+    produce newline terminated output. The cookie file is availiable from
+    David Pilling.
+m   Current phase of the moon. To make sense, you should use it in this 
+    context: 'Moon is currently %m' which (for example) will produce the 
+    output: 'Moon is currently in its last quarter'.
+n   Amount of mail waiting for user.
+l   Task loading of machine, ie number of tasks being run by desktop 
+    (includes module tasks).
+t   Time information. Followed by:
+     'o' Today, ie 'On this day in history' printout. This requires Today
+         format files (Today_01 -> Today_12) in <ARCbbs$text>.Today (eg for
+         March the BBS would try and open '<ARCbbs$Text>.Today.Today_03'.
+     'f' Time user first called
+     'l' Time user last called
+     'm' Msg # of last read 'N'ew mail
+     'd' Msg # when user last scanned 'N'ew downloads
+     'n' Time NOW
+     '0' Date in text form, e.g.
+         'Tuesday, the twenty-forth day of October, nineteen eighty-nine'
+     '1' Time in text form, e.g.
+         'The time is twenty minutes and twenty-two seconds after 5 PM.'
+     '2' Time in noddy form, e.g.
+         'The big hand is on the four and the little hand is on the five' 
+    All other times are in the form: 'Mon Jan 01 00:00:00 1989'
+     '3' Time used this call as a percentage (eg '%t5%%' would show (eg) 
+         '5%')
+     '4' Time left this call as a percentage.
+     '5' Time user has been online (in format mm:ss)
+     '6' Time user has left (in format mm:ss)
+
+Colour control characters: these are not prefixed at all.
+
+  fg x     - foreground: x is colour, like before (nrgybmcw).
+  bfg x    - bold foreground
+  bg x     - background
+  fgbg xy  - foreground & background (x=fg, y=bg)
+  bfgbg xy - bold foreground and background
+  bold     - bold mode on
+  flash    - flash mode on
+  std      - return to white on black, no bold
+  cls      - clear screen
+  eol      - clear to end of line
+  eos      - clear to end of screen
+  anykey   - wait for key to be pressed
+  |        - newline
+
+Menus
+-----
+
+When you hit the menu button over the ARCbbs icon, you will get a menu like 
+this:
+
+                          .--------------------.
+                          |     BBS Server     |
+                          |--------------------|
+                          | Info            -> |
+                          | Database        -> |
+                          | Edit user       -> |
+                          | Brief status       |
+                          | Verbose status     |            
+                          | Local logon        |
+                          | Upload          -> |
+                          | Maintenance     -> |
+                          | Ensure files       |
+                          | Quit            -> |
+                          `--------------------'
+
+Info                Gives info about the version of ARCbbs you are running 
+                    and when it was compiled.
+
+Database            Server database statistics - this calculates some stats
+                    on the message base and displays them in a dialog box:
+
+                    Lookup:
+                       Map usage - This shows when the map will need
+                       expanding, ie the percentage of space in the lookupmap
+                       that is used by the current lookup file. Expand it at
+                       90% to make sure it doesn't overflow when you're not
+                       looking.
+
+                       File usage - This shows the percentage of active
+                       headers in the lookup file - if this gets too low, then
+                       it would be a good idea to export/reimport or use the
+                       new compression utility when I write it so you can
+                       reuse the space (make the lookup file smaller).
+
+                       Highest - Highest message # in use (directly related to
+                       size of lookup file)
+
+                       Active - Number of active messages in lookup file.
+
+                       Dead - (=Highest-Active) the number of unused message
+                       headers in the message file that can only be used
+                       for private mail, and would be removed by compressing
+                       the message base.
+
+                    Data:
+                       Map usage  - As for lookup.
+
+                       File usage - This shows the percentage of active text
+                       blocks in the data file.
+
+                    Note this information is calculated when the dialog opens,
+                    and won't update dynamically while the dialog is onscreen.
+
+Edit user           You can either click on this option to edit user 1 (the 
+                    default) or follow the arrow and enter a usernumber to 
+                    edit. These both start up the icon-driven user editor.
+
+Brief status        This opens the 'brief status' display, which shows what 
+                    ports are loaded, the current paging status and various 
+                    other statistics. This is discussed in the 'Brief status' 
+                    section of the manual.
+
+Verbose status      This opens the 'verbose status' display, which shows what 
+                    ports are doing what, who is logged on, and what baudrate 
+                    they are calling at. This is discussed in the 'Verbose 
+                    status' section of the manual.
+
+Local logon         This starts a local login onscreen, allowing the Sysop to 
+                    use the BBS as if he was calling it remotely. The 
+                    terminal used for this (which is (c)1989 Peter Gaunt) 
+                    provides a full IBM-ANSI emulation - unfortunately this 
+                    takes much CPU time, so (a) Only use it in 16 colour 
+                    modes (though it will work in other modes) and (b) Try 
+                    not to use it when system load is already high. You may 
+                    logoff the system by clicking on the window's close icon, 
+                    although this will NOT update your 'zip' pointers, this 
+                    is equivalent to dropping line. To logoff 'properly', use 
+                    the logoff option on the menus, and clock on the close 
+                    box when the title screen is reprinted.
+
+Upload              This has a submenu with 2 options:
+
+  Local upload      This allows the Sysop to upload files locally by 
+                    dragging. See the section on 'local upload' for more 
+                    information.
+
+  Batch upload      This allows the Sysop to upload batches of files to the 
+                    system automagically. See the section on 'batch upload' 
+                    for more information.
+
+Maintenance         This has a submenu:
+
+  Area edit         This enters the mail/file area editor, which allows you 
+                    to edit/ create new mail/file areas. NOTE: if you are 
+                    generating new areas remember to hit the 'blank' gadget 
+                    before 'write' as this initialises the message pointers. 
+                    If you are editing a message/file area containing 
+                    messages, DO NOT hit the 'blank' gadget as this will 
+                    erase all the messages in that area without freeing the 
+                    space afterwards.
+
+                    It has some check boxes:
+
+                    File area - on if the area is to be a file area.
+                    Echomail - on if the area is to be an echomail area.
+                    Readable - Readable by non-sysops
+                    Writable - Writable by non-sysops
+                    Auto-invisible - Any writes to the area are automatically
+                      invisible (as if you'd used '+' on them). Useful so
+                      you can vet uploads before they're on display.
+                    No-loss downloads - Downloading from this area won't
+                      increment user's download count.
+                    No-gain upload - Uploading to this area won't increment
+                      user's upload count.
+
+                    Clicking menu over the window will produce a menu of
+                    the Message/file flags that would be needed by a user
+                    for them to be able to see/access the area.
+
+  Trim messagebases This trims the messagebases according to the file
+                    !ARCserver.Misc.Data.Trim - which lists message area
+                    numbers and maximum size of area.
+
+  Run event         This will force the event file (!ARCserver.Event) which 
+                    is usually run at 2:30am to be run immediately. The event
+                    time can be changed by setting ARCbbs$EventTime to (for
+                    example) "3:30".
+
+  Fidonet           This has a submenu with 2 options:
+
+    Import          Imports new mailpackets in the !Binkley.Inbound directory 
+                    (after dearcing, etc) into the system.
+
+    Export          Exports any new echomail messages to the 
+                    !Binkley.Outbound(xx) directory(/ies). !Binkley.ARCmail
+                    is executed after the export to ensure all mail packets
+                    are compressed.
+
+Ensure files        This closes and reopens all BBS files, ensuring that the 
+                    latest data is written to disk. You should use this 
+                    before running any untested or badly-behaved RISC OS 
+                    tasks as otherwise the non-closure of files might result 
+                    in corruption of files.
+
+Quit                This option is used to shutdown the ARCbbs server and all 
+                    its associated slaves. As a safeguard against accidental 
+                    shutdown, if anyone is logged on you have to confirm your
+                    action.
+
+Brief status
+------------
+
+The brief status window looks like this:
+
+         .---------------------------------------------------------.
+         | O | X |                 ARCbbs                          |
+         |---------------------------------------------------------|
+         |       ARCbbs                                       1.04 |
+         |                                                         |
+         | X  Port 0   X  Paging   This uptime     0   Loading 0/2 |
+         | O  Port 1   X  Port 5   Total         775               |
+         | O  Port 2   O  Port 6                                   |
+         | O  Port 3   O  Port 7                       File TX   0 |
+         | O  Port 4   O  Port 8                       File RX   0 |
+         `---------------------------------------------------------'
+
+If the icon infront of the port number is lit, this indicates that the port 
+is loaded. When a port is in use, the text 'Port x' will increase in 
+intensity.
+
+This uptime         Number of calls since ARCbbs was last loaded.
+Total               Number of calls TOTAL.
+Loading             Number of BBS slave tasks active (excluding chat/file 
+                    transfers) online tasks/offline tasks.
+File TX/RX          Counts of files downloaded/uploaded since ARCbbs was last 
+                    loaded.
+
+If you click the menu button over a port icon (for example port 5), you will 
+get a menu like this:
+                             .----------------.
+                             |     Port 5     |
+                             |----------------|
+                             | Edit user      |
+                             | Message     -> |
+                             | Divert      -> |
+                             | Add 10 mins    |
+                             | Add upload     |
+                             | Chat with user |
+                             | Snoop on user  |
+                             | Drop line      |
+                             `----------------'
+
+Edit user           This loads up the user editor for the usernumber 
+                    currently online.
+
+Message             Follow the arrow to enter a one-line message to send to 
+                    the user currently online. Good for when you don't want 
+                    to chat.
+
+Divert              Follow the arrow and enter the filename of a menu in the 
+                    user's current menu path to which the user will be 
+                    diverted to. If a nonexistant menu name is typed, the 
+                    user will be logged off. Use with care!
+
+Add 10 mins         Adds 10 minutes to the user's current logon time for this 
+                    call.
+
+Add upload          Adds an upload the the user's upload count, allowing the 
+                    user to download another (up/download ratio) files.
+
+Chat with user      This will break into chat mode with the user, bringing up 
+                    a chat window. Chat can be terminated by clicking on the 
+                    chat window's close box.
+
+Snoop on user       This will bring up a window with which you can see what 
+                    that user is up to. You cannot use local logon when this 
+                    is active. You can also 'infulence' what the is doing by 
+                    typing: your typing and the users typing are mixed. Note 
+                    that this is NOT a proper WIMP window and will NOT redraw 
+                    if you put anything over it. This is implemented this way 
+                    because of system loading restrictions. The only full-
+                    WIMP logon is available as local logon.
+
+Sysop paging
+------------
+
+The sysop can close all ARCbbs windows and leave it running as an icon on the 
+right end of the icon bar: if a user wishes to chat with the sysop, the BBS 
+will popup a chat window ontop of all other open windows (eg DTP) telling the 
+sysop the name of the user paging him/her, and will beep for upto 10 seconds 
+or until the sysop clicks on 'ignore' - producing the same result as a 
+timeout, but stopping the beeping, 'excuse' - after the sysop has typed in an 
+excuse which will stop the paging and pass on the excuse to the user or 
+'accept' which will open a window within which the sysop can communicate with 
+the online user. Only the sysop can end the chat, by clicking on the chat 
+window's close icon. If the user drops carrier the window will automagically 
+close. The sysop's typing appears in red and the user's in blue.
+                     
+Sysop file commands
+-------------------
+
+[M]ove              This command will allow the Sysop to move files which 
+                    have been uploaded into the wrong file directory into the 
+                    correct file directory. When [M]ove is keyed, you are 
+                    prompted for the number of the filearea into which you 
+                    wish to move the file. Type in the areanumber and press 
+                    return and the file will be moved.
+
+[C]hange description
+                    Allows you to change the file's long & short descrptions.
+
+[E]rase
+                    Removes the file from the filebase.
+
+Hide/unhide (Invisible messages)
+--------------------------------
+
+The sysop can hide/unhide (show) a file or message by keying '+' at the read 
+menu/ long filelist menu of the message/file in question. Only the Sysop can 
+see that these files/messages exist, BUT a user can still download the file 
+by specifying the file number or if it is linked to a message.
+
+Local upload
+------------
+
+This allows the Sysop to upload new files to the system simply by dragging: 
+after loading the 'Local upload' process, you need only pick up the relevant 
+file, drag it into the 'Local upload' window and then enter a short and a 
+long description, then click on the arrow gadgets to select the correct file 
+area for the file, edit the filename as appropriate and select the usernumber 
+you wish the upload to be attributed to, and click on 'Write'. The file will 
+be copied into the BBS's filearea and added to the file directory. Filetypes 
+(text/arced/binary) are set according to the filetype of the file you dragged 
+in. If the filetype is 0xfff (text) it is set to be a text file. If it is 
+0xddc (ARC) it is set to be an ARC file. Otherwise, it is set to 'binary'.
+
+Batch upload
+------------
+
+This allows the Sysop to transfer old BBS filebases or batches of new files 
+over to ARCbbs. The Sysop needs to create/generate a text file (0xfff 
+filetype) containing records like this:
+
+1st line            Pathname of where the file is.
+2nd line            Filename for file on system
+3rd line            Short description
+4th ->              Long description. Terminated by '###' on its own to mark 
+                    the end of the description.
+
+Just drag this file to the 'batch upload' window and click on 'start'. The 
+process will then process the file, uploading as it goes. Information about 
+the current file being processed is shown in the window.
+
+User editor
+-----------
+
+The user editor is intended primarily to view/edit user information and to 
+create the occasional new user. It has a menu, with 5 options:
+
+Info                The normal info window
+
+Reset mail flags    This should be used when either creating a new user from 
+                    the user editor or removing an old user with corrupted 
+                    mail links. To create a new user, select a free record 
+                    number (i.e. 'Record active' not on), make record active 
+                    ON. Then select the 'reset mail flags' option to setup 
+                    initial mail pointers, etc, and enter the user data, 
+                    followed by clicking on 'Save'.
+                                    
+Find user           This enables you to find a userlog record merely by 
+                    typing in a username.
+
+Add lookup          This enables you to add other 'aliases' to the currently 
+                    displayed userlog record: ie if you want the Sysop to be 
+                    able to logon/ be mailed as 'The Sysop' and 'The big 
+                    cheese' aswell as the name stored in the userlog, then 
+                    you would select the Sysop's userlog record and use the 
+                    add lookup command to add these two aliases. Note that no 
+                    record is kept of what aliases belong to who and you must 
+                    keep a record yourself! Aliases can be removed using the 
+                    'remove lookup' command, and all aliases from all records 
+                    are purged if the 'generate user links' option on the 
+                    sysop utils menu is used.
+
+Remove lookup       See above.
+
+Clicking the menu button over [user] [msg] or [file] results in a menu
+appearing displaying the known flag names for whichever category was clicked
+over and ticks by the side of each flag that is set for the user.
+
+To delete a user, click the 'in use' box so it is off and then click on
+'Write User'.
+
+The 'R' to the right of the users time will reset the time used for today
+(if user is written). The 'Make' icon next to the password will blank the
+password of the user if the user is written.
+
+Sysop utilities
+---------------
+
+[R]ead a user's mail          Enter a usernumber/name and you have access to 
+                              that user's private mailbox. Note that recorded 
+                              delivery messages will not be recorded using 
+                              this option.
+
+[M]end a msg/filebase         Enter msg/filebase number (not private mail - 0 
+                              for this use the 'P' option (see below) to 
+                              search message base for messages and relink 
+                              them.
+               
+[T]otal mend                  This just runs though all areas as does a mend 
+                              on any whose name is not null.
+
+[G]enerate user lookup file   NOTE: You must go through userlog manually and 
+                              remove any duplicate users before using this 
+                              option. This option will churn through userlog 
+                              (warning, may take about 30 secs and does NOT 
+                              multitask for reasons of user confusion - eg 
+                              userlog references appearing and 
+                              disappearing!), blank the lookup file, and re-
+                              generate it. This will also remove all 
+                              mail/logon aliases that have been setup with 
+                              the user editor.
+
+[A]lter global conference access
+                              This allows you to alter the conference 
+                              membership flags of the complete user 
+                              population: to use you just type the areanumber 
+                              of the conference you wish to add/remove 
+                              to/from all users, prefixed with '+' to add and 
+                              '-' to remove. Note that this DOES multitask 
+                              and can be done with users online. This does 
+                              NOT affect any users who have the 'sysop' flag 
+                              set, but does affect the 'default' user (user 
+                              0).
+
+[S]how conference access      This allows you to see who has joined a 
+                              specific conference: it can be useful for 
+                              checking that only specific users have access 
+                              to a sensitive area. Just type in the 
+                              areanumber of the conference/filebase and the 
+                              list will be displayed.
+
+[B]ulk user delete            This allows you to prune your userlog of old, 
+                              inactive users. You enter the number of days 
+                              unused allowed on the system at the prompt, and 
+                              any users who have not called for that many 
+                              days are displayed and you are prompted 'Delete 
+                              [y/n/a]'. If you key 'y', then the user is 
+                              deleted (if the user has any private mail you 
+                              can read it, but *must* delete it before 
+                              exitting read menu). If you key 'n' the system 
+                              skips to the next matching user. Keying 'a' 
+                              will abort the whole scan.
+
+[C]hange conference/filearea number
+                              This allows you to 'renumber' a conference or 
+                              filebase. Basically, set up the destination 
+                              area as a blank area containing no messages, 
+                              then use this option, entering the appropriate 
+                              source & destination areas.
+
+                              IT IS IMPORTANT THAT YOU ENSURE THAT BOTH THE 
+                              SOURCE AND DESTINATION AREAS ARE NOT IN USE 
+                              WHEN THIS COMMAND IS BEING USED!
+
+                              ARCbbs will churn through the message base 
+                              renumbering messages. It will also warn you to 
+                              use 'M'end if it detects any discrepancy in the 
+                              message counts. After sucessful completion, the 
+                              source area will be empty and the destination 
+                              area will contain all the source area's 
+                              messages. Note that the areaname/flags/level 
+                              etc are NOT transferred with this command.
+
+[!] Fix freespace maps/text links
+                              This will blank the freespace maps, then run 
+                              through entire messagebase, following all text 
+                              links and checking they are good: if any are 
+                              corrupt, then it will truncate the message 
+                              length to zero and free up the corrupted text 
+                              chain. If the message is OK, it will mark it as 
+                              such: status of the process is displayed 
+                              onscreen. When this has finished, use 'T'otal 
+                              mend to check message links, followed by 
+                              'P'rivate mail mend.
+
+[P]rivate mail mend           This blanks all user's private mail, then 
+                              churns through the message base re-inserting 
+                              private mail into mailboxes. Note that although 
+                              express messages go to the top of the mailbox, 
+                              the other messages will not be in any specific 
+                              order. Null messages (truncated by the '!' 
+                              command above as they were corrupt) are 
+                              deleted.
+    
+[*] Generate text file list   This runs through all fileareas generating a 
+                              'short-filelist' type list of files. Only 
+                              fileareas with the 'readable' flag are scanned. 
+                              You must specify the filename of the filelist 
+                              to be generated. This is useful for generating 
+                              filelists to be sent when a Fidonet caller 
+                              filerequests the system file 'FILES'. If you 
+                              are using the filelist for this purpose, 
+                              remember to put a note on the top of the list 
+                              saying that files must be requested by 6 digit 
+                              filenumber, NOT by filename.
+
+[$] Trim messagebase          With fidonet conferences, it is not unlikely to 
+                              have 2000-3000 messages in an area after a few 
+                              months. With the trim messagebase option you 
+                              can remove the old messages leaving a useful 
+                              chunk of, say, 500 messages in the area. This 
+                              function can also be used on local 
+                              messagebases. Just enter the messagebase number 
+                              and the maximum number of messages you wish to 
+                              exist in the message area, and any surplus ones 
+                              will be removed. An easier way to do this
+                              automatically is to use the Misc.Data.Trim file
+                              - see this file for more information.
+
+Questionnaire system
+--------------------
+
+A questionnaire filename is specified in a menu data file with the 'QUESTION' 
+keyword, eg 'QUESTION <ARCbbs$text>.Questions.1' will run the questionnaire 
+file <ARCbbs$text>.Questions.1. The format of a questionnaire file is as 
+follows:
+ 
+First line   : filename of file in which to record the user's responses.
+
+Then:
+
+question (can be multiple lines, but each must start on the 1st column)
+like this.
+ responses. These lines are all started with a space.
+ like this. They are tagged by the BBS 'A-Z' so you can have a maximum of
+ 26 possible responses. Alternatively, you can use '>' on a line (this can
+ be the only option) followed by max field length to enter a string.
+
+^^^ End of responses is marked by a BLANK LINE, ie 2 LF's in a row.
+
+The end of the file is marked by '#END' for a question. Eg:
+
+<ARCbbs$text>.Answers.1
+How would you rate this BB s/w?
+ Wonderful
+ Nice
+ Brilliant
+ Unbelievable
+ Other nice thing.
+
+What modem do you use?
+ 300
+ 1200
+ 1275
+ 2400
+
+Any comments?
+ >70
+
+Do you run a BBS?
+ #GOTO maybewant# No
+ Yes
+
+What is it's name?
+ >70
+
+And number?
+ >30
+
+#GOTO theend
+#LABEL maybewant
+Do you want to run a BBS?
+ Yes
+ No
+
+#LABEL theend
+#END
+
+It's as simple as that! All responses are recorded in the specified response 
+file, along with the username and time/date the questionnaire was answered. 
+(plain text format).      
+
+Labels for goto's can be inserted anywhere in the QUESTION TEXT, by using 
+#LABEL <labelname>. GOTO's can be inserted (unconditionally) in the same way, 
+using #GOTO <labelname>. Conditional gotos can be inserted by putting #GOTO 
+<labelname># infront of response text (see above).
+
+You can mail questionnaire results to a user by making the first line of the
+questionnaire file contain '>>>usernumber'. To actually initiate the sending
+of the mail, a #SEND command is needed - this can be put in a final confirm
+message - thus preventing any non-completed questionnaires from getting
+mailed.
+
+Notes
+
++ Fortune$Data points to the filename of the fortune cookie data file.
++ !Spark version 2.00 or greater MUST be loaded for S_ARC command and the 
+  fidonet import/export commands to work. Included with your ARCbbs package.
++ If case of system crash: if all windows, etc stop working BUT mousepointer 
+  still functions, then wait for about 10 seconds: there will be some disk 
+  activity and a beep, indicating that the BBS module has sensed the crash 
+  and has saved/closed files. The server then re-opens them incase it is a 
+  rogue task using all cpu time (eg magnifier) but all data will have  been 
+  saved so you can safely reset the machine. NOTE THIS HAS BEEN DISABLED DUE 
+  TO PROBLEMS WITH CallBack.
+
+Coming soon(ish)
+----------------
+                
+- = Waiting         * = done
+
+- Filing/download of new file descriptions
+- Snoop in proper resizable window (also dynamically allocated sprite for 
+  locallogons/snoops for better memory usage on small-memory machines).
+- Fullscreen text editor.     
+- Voting
+- Message searching
+- 16 user version
+- User file directories for:
+    Mailing lists.
+    BBS-Script files.
+    'New message'/'New file' scratchpads.
+- UUCP support for private mail.
+
+Fixed bugs + additions
+----------------------
+
+Read this if you're looking for info that wasn't above!
+ 
+- = bug, + = addition
+
++ Username aliasing for fidonet implelented: new file (Misc.Data.Fido. 
+  Translate) used: in the file, each record is 2 lines, first the username to 
+  trap for, and second the replacement name, eg:
+
+  Flump
+  Ian Griffiths
+
+  If username is not found in the file, the username is inseted into the
+  message as-is.
+- Archive listing twiddled so that spark's subdirectory 'size' is not 
+  counted: only the files INSIDE should be counted.
+
++ Routing added to Fidonet (MAIL only, you can't route echomail!).
+                                           
+  Format of file:
+
+  <verb> <data> <destination>
+ 
+  To map mail specifically from 2:252/101 to 2:252/102:
+
+  NodeMap 2:252/101 2:252/102
+
+  To map ALL mail to 2:252/1000:
+
+  NodeMap 2:252/1000
+
+  To map mail to zone 2 net 242 to 2:252/1000:
+
+  NetMap 2:242 2:252/1000
+
+  To map mail to zone 1 to 2:252/1000:
+
+  ZoneMap 1 2:252/1000
+
++ Facilities added to Hold mail for any node. If mail is on HOLD then the 
+  node must call US to get the mail, as opposed to us calling THEM. Format of 
+  holdfile:
+
+  <hold-character> <address>
+ 
+  Eg, to hold all outbound mail to 2:252/106:
+ 
+  H 2:252/106
+
++ 'Reset time' flag replaces 'annoy' flag in userlog. If set, the time limit 
+  quoted in user record is PER CALL, not PER DAY.
+- Last logon (%tl) now shows last logon time, not this logon time <blush>.
+
++ Questionnaire results can now be written into a mail message (minus 
+  prompts). Make questionnaire first line look like: >>>usernumber subject of 
+  msg There is NO SPACE between the '>>>' and the usernumber to send results 
+  to.
+
++ If paging is enabled, then the sysop will get a little 'new mail for sysop' 
+  window popping up on the screen whenever new mail arrives for him/her, it 
+  appears for 4 seconds then disappears.
+
++ 'On this day' feature added. Use %to to print out birthdays & special 
+  events of note.
+
+Release 1.54 of ARCbbs
+----------------------
+
++ Time warp for setting users message/file pointers:
+
+  SETMAIL <nr of days> M|F
+
+  (no of days back = 0 to 'catch up')
+
+  M for messages, F for files.
+
+  This searches back for public, non echomail messages for the date - this
+  had to be done as echomail messages can have wierd dates due to network
+  propogation delays.
+  
++ Sysop chat - now delete works! :-)
+
++ %us = user screen length
+
++ 'Message from sysop' no longer appears as 'essage from sysop'.
+
++ Needs Clib 3.66!
+
++ Overlays removed, there is a small space penalty (from 224k->288k per
+  line) but this seems to increase reliability several times!
+
++ Mail uploading does not require blank line between messages, a new message
+  header or EOF designates the end of message.
+
++ Sysop menu command 'setup echomail rescan'. This subtracts the supplied
+  number from the last message and saves it to the user 'Echomail' account,
+  allowing new people you are exporting to to get some mail to start
+  them off.
+
++ Improved security against bad pointers when reading mail.
+
++ Echomail export bug fixed (when exporting to lots of nodes, sometimes
+  nodes got areas they didn't ask for!).
+
++ Slightly more bomb-proof mail import: bad date/time format sets date
+  to 1 Jan 1970 00:00:00, truncated message data (eg EOF) results in
+  truncated message being imported and packet removed.
+
++ Some other bits I've forgotten, but Dave&Dave at Arcade wrote them
+  down!
+
+Release 1.56 of ARCbbs
+----------------------
+
++ Spaces at start/end of usernames removed.
+
++ {_>xxyy} allows terminal-independent cursor position setting.
+
++ WRITE F extended: eg WRITE F 2:252/102.0 allows sending of netmail to
+  *Anyone* at 2:252/102.0 and WRITE F 2:252/102.0 Hugo Fiennes would
+  automatically address netmail to me. Useful for 'write to moderator'
+  type commands! :-)
+
++ '%' typed in TO field when sending fidonet netmail was trashed, now
+  this has been fixed.
+
++ Lots more fixes, but most are so long ago I can't remember them anymore!
+
+Release 1.56a
+-------------
+
++ Set ARCbbs$EventTime 5:30   (for example) makes daily event happen at
+                              5:30.
+
++ More '%' fixes!!!
+
++ If a fidonet packet can't be deleted, the import is cancelled -
+  this prevents problems of reimporting the same packet many times
+  and crashing the system.
+
+Release 1.57
+------------
+
++ Fidonet echomail areaname length extended to 30 characters.
+
++ A few more small fixes!
+
+Release 1.58
+------------
+
++ Couple of bits like read-only areas could be written to if you were
+  [R]eplying.
+
++ Fidonet can now handle 128 areas
+
++ EOTs no longer appended to echomail messages when exported.
+
++ When dragging files into local logon, you have the option to (a)
+  enter the file as if it was typed, or (b) pass it to the message upload
+  processor, allowing you to upload messages produced by an offline reader.
+
++ Msg_x files are automatically accessed to check they are not locked
+  when deleting after importing.
+
++ Quoting will now wrap long lines instead of splitting them, gives a nicer
+  effect.
+
++ After every fidonet export (even automatic) the file <Binkley$Dir>.ArcMail
+  will be run, put !Sparkmail commands in here to ensure that mail is always
+  archived.
+
+Release 1.59
+------------
+
++ Will now handle CONNECT 14400 messages elegantly (I hope).
+
++ S_MESSAGE command changed. There is no longer the option of PC format text -
+  this option has been recoded and is now faster.
+
++ S_ARC command changed. Now it takes a command string to pass to spark, for
+  example:
+
+  S_ARC "-I -z -c16"
+
+  Will archive the scratchpad with 16-bit compress. Similarly -q (squash) and
+  -v (crunch) will work. Remember to specify -I for archie format and -i for
+  PC format!
+
++ ARCbbs no longer stamps files with what it thinks is the correct filetype
+  (ie text or spark) - this is left to the ft protocol if needed.
+
++ Zmodem now more in asm for speed.
+
++ 'Hog constant' reduced for local logon so it's more speedy at the expense
+  of CPU peaks.
+
++ Fidonet Route file changed:
+
+  Now you can have 'Direct': for example, this file:
+
+  Direct 2:252/106
+  Netmap 2:252 2:252/1000
+
+  Would bypass the net mapping for node 2:252/106.
+                      
+  Note also that Zonemap can be used on your 'home' zone now, for example,
+  to route everything in your zone to your host (but *not* through zonegate
+  as currently happens) use (for example):
+
+  Zonemap 2 2:252/1000
+
+  This:
+
+  Direct 2:254
+  Netmap 2:253 2:252/2000
+  Zonemap 2 2:252/1000
+
+  Will send all mail to 2:254/* directly, map all of net 2:253 to 2:252/2000,
+  but map everything else in the zone to 2:252/1000. I hope.
+
++ Snoop now filters ANSI codes as it was supposed to from the year dot.
+
++ Tweaks to ARCserver to recognise 144 errorlevel (14400 connect).
+
++ Modem inits are sent line by line, with a CR at the end of each and
+  a 1 second pause: however, you may insert these characters into the
+  strings (max 80 characters long each line) to special effects:
+
+  | - Return
+  v - DTR low
+  ^ - DTR high
+  ` - 0.1s pause
+  ~ - 1s pause
+
+Release 1.60
+------------
+
++ Flag naming changed: !ARCserver.misc.data.flags now holds flag tags,
+  'Message' for message flags, 'File' for file flags and 'User' for
+  userflags. Tags must *not* have spaces in them (for future developments)
+  and must be <20 characters long. Tags can be in any order - this is
+  the order they will appear on flag menus.
+
++ Area editor redone: now uses tags for the flags and has 'auto-invisible'
+  (any write operation sets the invisible flag, eg so new uploads can't
+  be seen until sysop checks them), 'no-cost download' - downloads are not
+  counted when taken from this area, 'no-gain upload' - uploads are not
+  counted in this area (eg for file link areas).
+
++ User editor now uses new tag file.
+
+Release 1.61
+------------
+
++ Local upload now multitasks, polling every 10k (one track on a floppy)
+  so you won't hang the board when uploading long files from floppy!
+
++ New message system implemented: you will need to take a backup copy of
+  your messagebases (eg using messagebase export), and run ConvertMap -
+  this will expand your mapfile to 8x its current size (yes it might
+  become big). Make a backup copy of DataMap and copy the newly generated
+  NewDataMap to DataMap. Load 1.61 - everything should appear normal.
+  New messages written to the messagebase will be in the new format:
+  ARCbbs searches for a gap big enough to fit the entire message in
+  and puts it there - whole. This means less furtle-ing of the disk
+  and faster access. For a major speed improvment you can start with
+  clean mail files and reimport from a previously exported messagebase.
+
+  Note: Hopefully this won't cause any major problems - ARCbbs, when
+  importing large amounts of mail doesn't save all the files after every
+  message as it did previously. If in doubt, after a non-fatal error
+  use 'ensure files' or after a more major crash *RMkill ARCbbs_Filer
+  will ensure map files etc are saved to disk.
+
++ Short filelist now pauses at end of every page if more? is enabled.
+
++ Errorlog implemented, currently only used for fido errors (but those
+  are 90% of all errors! :-) ). You need to add a line to
+  !ARCserver.!Config:
+
+  Set ARCbbs$errorlog <ARCserver$Dir>.ErrorLog
+
+  (or wherever). Log entries are in the form:
+
+  hh:mm:ss day mon dt [module   ] Message
+
+  module currently is fidoIN or fidoOUT for inbound fido processing or
+  outbound fido processing.
+
++ With more? selected and ANSI/VT102, full screen message reader is
+  now implemented. Very pretty...
+
++ !ARCserver.Misc.Data.Trim defines the maximum nr of messages in any
+  message area. Trimming is performed *after* the daily event. See the
+  example trim file for format.
+
++ Server menus reorganised! Quit now will prompt you if there are users
+  online. Area edit, trim, fidonet, run event all moved to 'Maintenance'
+  submenu.
+
++ When ARCbbs_M loads, the speed etc are displayed immediately, not
+  after logon as before.
+
+- Bug in 1.60's area editor fixed, would corrupt flags.
+
++ New control code format used for colours! (eek!). Converter,
+  cfiles (toconvert) converts all old files. Basically:
+
+  {} surround codes
+  fg x     - foreground: x is colour, like before (nrgybmcw).
+  bfg x    - bold foreground
+  bg x     - background
+  fgbg xy  - foreground & background (x=fg, y=bg)
+  bfgbg xy - bold foreground and background
+  bold     - bold mode on
+  flash    - flash mode on
+  std      - return to white on black, no bold
+  cls      - clear screen
+  eol      - clear to end of line
+  eos      - clear to end of screen
+  anykey   - wait for key to be pressed
+  |        - newline
+  _xxx     - same as % operands, eg %t1 is now {_t1}
+
+  Codes may be built up, eg:
+
+  {cls bfgbg wb eos _>2020}
+
++ New menu language added. This is not finished yet! New menus can be
+  called with NEWMENU <menu> command. This will start with no path,
+  so make sure your first new format menu (maybe a boot-menu) is
+  in the $Data or $Text directory.
+
++ All misc.data.modem.* files changed to S0=0, ARCbbs will now sense RING
+  and send an ATA to answer the call.
+
++ When reading messages, [C] will allow the sysop to change the subject,
+  and [M] will move the message (crosspost) to another area (destination
+  area must be non-echomail as otherwise it might get interesting!).
+
++ New command added: SCANFORME - this scans through new mail looking for
+  mail addressed to you. It displays who the message is from and what
+  area it is in and you can read the message, skip to the next one or
+  abort the scan.
+
++ New line in *all* modem drivers - just after the NOSETBAUD/SETBAUD/HSTSETBAUD
+  line, another line has been added:
+
+  ATAONRING        - Will send ATA when a RING is received.
+  NOATAONRING      - Will not send ATA when a RING is received. Needed for
+                     some modems (eg WS3000) which do not scan on ATA but
+                     do with S0=1.
+
+[1.61 released]
+
+Release 1.62
+------------
+
++ Netmail arriving in the inbound directory not address to you is now routed
+  (according to your route file) back out again.
+
++ Zmodem even more in asm. 32-bit CRC's were broken on Zmodem RX too.
+
+- Snooping disabled during filetransfers.
+
++ Kermit added.
+
+- Problems with fileareas/area editors fixed - they couldn't rename, change
+  description, invisible/uninvisible files.
+
++ Invisible files show up on short filelists now with a red filenumber.
+
+
+
+-------------------------------------------------------------------------------
+Changes in latest version                                                 1.62a
+-------------------------------------------------------------------------------
+
+- Fixed scratchpad file being left open if Zmodem aborted in certain
+  circumstances.
+
+- PATH line in Fidonet message packet builder checked for correct ending
+  before adding new data - was being chopped sometimes.
+
+- Colons removed from TOPT and FMPT in Fido packet headers.
+
+- Fixed EOF character entering buffer on files dropped in local logon
+  window.
+
+- Fixed temp (Batch/Scratch/Msg) files not being deleted after carrier
+  drop if binkley not used.
+
+- Updated online call costs to refelect current UK rates.
+
+- Fido packet header now includes Zone numbers (Ref FTS-0001 rev 15).
+
+- When a message is crossposted, the original to/from fields are preserved,
+  with the first line saying: Crossposted from <area> by <crossposter> -
+  so that replies to the moved message are directed to the correct person.
+
+-------------------------------------------------------------------------------
+Changes in latest version                                                 1.62b
+-------------------------------------------------------------------------------
+
++ Private mail can now be included in message download by offering option
+  S_MESSAGE P.
+
++ Sysop may have ^A lines in downloads by setting ARCbbs$TheWorks to "Yes".
+
+- 8 bit characters can be entered and edited in any input line.
+
+- local logon recoded. Flashing cursor, displays flashing characters,
+  correct colours for RO3.1, spool text, save as text, sprite from window!
+
+- last character on chat window line now correctly redrawn - also top bit
+  set characters can be entered (but window uses system chars anyway!)
+
++ Userlist search will match to any valid chars in target line - so you
+  can list all users for particular day etc.
+
+- When Write clicked in area editor causes immediate write to disc.
+
+- Line editor search-and-replace takes account of soft and hard line
+
+  breaks, now always allows longer replaces.
+
++ new CLI command OSCLI (!) (!use with care!) Eg. To view directory:
+  OSCLI ". { > RAM:TEST }"
+  TYPE RAM:TEST
+
+- Netmail message send can be aborted by just pressing return on empty
+  field, and pre-addressed netmails or replies to netmail now abort if
+  node number not found.
+
+- Fixed problem where duplicate net was created in SEENBY line when
+  exporting node's net was same as the following net/node in list.
+
++ Timetravel now works on all messages - BUT only for messages stored
+  after installation of this version. Otherwise time travel will go back
+  to the year zero - takes a LONG time!
+
++ FidoNet packet format revised to FSC-0039.
+
++ 4D point support added! Up to 25 Points (1-25) can be supported.
+  Echomail export to points now possible, and replies to netmail messages
+  from external points will be sent back to Boss for collection.
+  (hopefully!)
+  "Hold" file can be used with 4D addresses to Hold export to points. Note
+  you can only export echomail to your own points!
+
++ Nodelist location now set by ARCbbs$Nodelist.
+
+- Users thrown out of MUchat if time up.
+
++ Fastcash not allowed!
+
++ Clicking select on server icon starts up a local logon.
+
+- Fixed export of echomail to boss not being created when boss in SEENBYs
+
++ Added Save Message option to local logon menu.
+
++ Added warning message "Message too long. It has been truncated", issued
+  when uploaded message is too long (>15K).
+
+Point operation
+===============
+
+1. No fakenodes anymore. Just set yourself up in the ournode line, if you're
+.0 you can automatically be a boss, if you're a point arcbbs should (I stress
+this, it hasn't been tested much) act as a point. Of course, you can only
+export to *your own* points.
+
+2. The whole of incoming messages are scanned for FMPT lines, so hopefully
+private mail will be replied to fine.
+
+3. Packet headers now include point and zone info as in FSC-0039.
+
+4. Point echomail contains a hidden kludge line (not exported) in the
+messagebase which is a ^A.SEENBY: line (point seenby), and uses one character
+per point (plus one for the boss) to check who the mail has been exported to
+(in reality, a-z, which goes into capitals when it's been seen by that point).
+This supports 25 points plus the boss. The highest point number currently
+supported is 25. In theory, points should be able to swap echomail between
+themselves (but NOT private mail) - but this is not recommended.
+
+5. Hold file supports 4d - if you just put your 3d address in as hold then all
+points will automatically become hold too. However, without a nodelist
+processor that handles 4d, nodes being anything apart from on hold might be
+fun.
+
+-------------------------------------------------------------------------------
+Changes in latest version                                                 1.62c
+-------------------------------------------------------------------------------
+
++ 'Downloaded' flag set when mail downloaded so it won't be downloaded
+  again. This flag is displayed when mail is being read manually too.
+
++ Fido export now shows destination it is exporting to in the window.
+
+- Bug in line editor search & replace fixed.
+
++ Filing messages might be very very very marginally quicker now - removed
+  a sprintf() from message loop and put it in display code.
+
++ Tearline moved to version.c file.
+
++ Server database statistics added: the 'Database status' option on the
+  main menu calculates the information and displays it in a dialog box:
+
+  Lookup: Map usage  - This shows when the map will need expanding, ie the
+                       percentage of space in the lookupmap that is used
+                       by the current lookup file. Expand it at 80 or 90%
+                       to make sure it doesn't overflow when you're not
+                       looking.
+
+          File usage - This shows the percentage of active headers in the
+                       lookup file - if this gets too low, then it would
+                       be a good idea to export/reimport or use the new
+                       compression utility when I write it so you can
+                       reuse the space (make the lookup file smaller).
+
+          Highest    - Highest message # in use (directly related to
+                       size of lookup file)
+
+          Active     - Number of active messages in lookup file.
+
+          Dead       - (=Highest-Active) the number of unused message
+                       headers in the message file that can only be used
+                       for private mail, and would be removed by
+                       compressing the message base.
+
+  Data:   Map usage  - As for lookup.
+
+          File usage - This shows the percentage of active text blocks in
+                       the data file.
+
+  Note this information is calculated when the dialog opens, and won't update
+  dynamically while the dialog is onscreen.
+
+- Bug with fido re-routing fixed - when a message was rerouted it always
+  appeared to come from 0/0 - this bug has existed ever since routing was
+  implemented and no-one complained (not even Stefan!). Weird!
+
+- Bug that caused a point writing mail to another point to go into a PT
+  directory fixed. Note that all points should ZoneMap all zones to their
+  boss.
+
+- Bug that caused a point to show nodenumber twice in SEENBYs fixed.
+
++ Writing fidonet netmail now asks for name, then node - more friendly that
+  way.
+
++ servcomm.c changed so that lastmsg is only compiled for BBS tasks (you can
+  remove the mail_block *lastmsgs's now Dave!)
+
++ New BBS module included - turns IRQs on directly as opposed to using SWI
+  OS_IntOn (quicker), and also has a couple of extra SWIs needed for the
+  Database statistics.
+
+-------------------------------------------------------------------------------
+Changes in latest version                                                 1.62d
+-------------------------------------------------------------------------------
+
++ Fido import/export/dearc is now conditionally compiled, this saves about 10k
+  from bbs slaves (they didn't import/export anyway any more).
+
++ When exporting echomail, fido.c no longer opens the packet then closes and
+  deletes if nothing was written, it just doesn't open it until it has to
+  export the first message into the packet.
+
+- When importing from one of its own points, fido.c now sets the .SEENBY of
+  the point the message was imported from so that it doesn't re-export it
+  immediately to the point it came from.
+
+-------------------------------------------------------------------------------
+Changes in latest version                                                 1.62e
+-------------------------------------------------------------------------------
+
++ System variables galore!
+
+  If you set ARCbbs$Spark to "Y" and put Spark inside the ARCserver directory,
+  it will load it automatically.
+
+  Set ARCbbs$Mailer to the pathname of your chosen mailer.
+  ARCmail should always reside INSIDE the mailer's application directory
+  (ie it is run as <ARCbbs$Mailer>.Arcmail).
+
+  Set ARCbbs$MailerTaskName to the task name of your mailer, eg
+  "BinkleyTerm_%d"
+
+  NOTE: ARCbbs still looks for Binkley$ReturnX where X is the port number,
+  numbered from 0, and ARCbbs_M still expects to find a BBS_X file inside
+  the mailer directory to tell it the caller's speed, etc.
+
+  Set ARCbbs$OutboundBase to the directory in which the various outbound
+  folders reside.
+
+  Set ARCbbs$Inbound to the inbound directory (not the directory in which
+  the inbound resides, but the actual inbound).
+
+  For your old system to continue working, use the following in your
+  !ARCserver.!Run file after the binkley setup: (only applicable if you are
+  upgrading from <1.62e)
+
+  Set ARCbbs$Mailer <Binkley$Dir>
+  Set ARCbbs$MailerTaskName "BinkleyTerm_%d"
+  Set ARCbbs$OutboundBase <Binkley$Dir>
+  Set ARCbbs$Inbound <Binkley$Dir>.Inbound
+
+-------------------------------------------------------------------------------
+Changes in latest version                                                 1.62f
+-------------------------------------------------------------------------------
+
++ New system variable: ARCbbs$systemlog - points to a file into which system
+  logging information is put, eg fidonet export/import counts, bad password
+  attempts, etc.
+
++ File searches now display number of files searched periodically, and also
+  at the end show total files searched and number of matches. There might
+  also be a small speedup due to code tweaking.
+
++ Fidonet export speeded up, more packet files kept open than before.
+
++ Fido truncates long (>16k) messages.
+
+
+-------------------------------------------------------------------------------
+Changes in latest version 30-March-93                                      1.63
+-------------------------------------------------------------------------------
+
++ Modem file changed rather radically. Proper config-type file now, only one
+  (long) modem init line (like binkley), comments allowed, etc:
+
+  ; HST modem driver
+  ;
+  ; Serial port driver module (block driver)
+  driver internal
+  port 0
+  ;
+  ; Speeds as before
+  txspeed 19200
+  rxspeed 19200
+  ;
+  ; Modem type - can be 'hayes' or 'pipe': pipes just give
+  ; connect when dcd goes high (speeds are irrelevant)
+  modem hayes
+  ;
+  ; Baud set type - can be 'set', 'lock', 'hst' or 'hayes' (hayes V-series)
+  baud hst
+  ;
+  ; Ring response - can be 'ata' or omit lime completely
+  ringresponse ata
+  ;
+  ; Welcome text file
+  welcometext <ARCbbs$text>.logon1
+  ;
+  ; Line password line (if needed)
+  ; linepassword pw
+  ;
+  ; Modem initialisation
+  modeminit AT&B2&W|~~ATE1Q0V1X1B0F1M1&A2&G2&H1|~AT&I0&J0&K1&L0&M4&N0&P1&C1|~
+  (SAME LINE CONT)             ... ATS27=0&R2S2=255S28=8&Y0S0=0S9=1S10=3H0|
+
++ As you can see from above, you'll need a modem file for each line (even
+  if they have the same modem on them). The 'pipe' works with the pipe
+  block driver that pipes data (via the ARCbbs pipe module currently) to
+  another application. Using this method, an ARCterm modem server can
+  offer an arcbbs port as a remote serial connection, allowing network
+  logons.
+
+  Note that now there is *no connection* between the ARCbbs port number
+  and any hardware port number. This also means you have to have a modem
+  file for every BBS line (specifying the hardware port number).
+
+  If you are using Intelligent Interface Dual RS423 cards you will need
+  to make use of the 'Internal2' and 'II_Dual' drivers - the Internal2
+  driver must be used for the internal port as this driver reselects
+  the port in case the II_Dual driver has selected an II port.
+
++ ARCterm 7 script language added to ARCbbs. This is currently in an early
+  state, but should be useful even now: it allows direct access to some
+  system information and allows intelligence to be built in. Errors are
+  logged to the errorlog. Scripts are designed to be run from the menu
+  language, not to run the whole BBS, as a C-style programming language
+  is a bit heavy for all the menus (I will be neatening up the menu language
+  too soon). As with ARCterm, on loading the script is compressed and 
+  tokenised before being run, and this first pass will show up some errors
+  in the code. Scripts are run with the 'SCRIPT <filename>' command.
+
+  NOTE: You need to set ARCbbs$Script! Usually set it to <ARCserver$Dir>.Script
+  ARCbbs looks to include the script file <ARCbbs$script>.Library when
+  the bbs slave task loads. Global variables are kept between script
+  runs.
+
+  I have (almost almost working) a replica of the user logon sequence
+  (including new user logon), but using a script, allowing very configurable
+  front-ends - this will be out in the next release.
+
++ Rerouted messages now have via lines of the form:
+
+  Via ARCbbs z:n/n, date at time
+
+  Which is neater & more standard.
+
++ If no user called 'areafix' exists the message gets appended to the file
+  "<ARCbbs$areafix>". This is only temporary though, when the new msgbase
+  format comes into effect then you will be able to redirect inbound mail
+  for a user to a file.
+
++ cliupload [filearea] [uploading-user] [bbs-filename] [short-desc] [realname]
+  Uploads a file to the bbs from the cli.
+
++ cliflist [filename] [listopts]
+  Generates a filelist (not multitasking). [listops] defines the contents of
+  the filelist, the headings are automatically generated:
+
+  # = filenumber
+  n = filename
+  l = filelength
+  s = short description
+  d = date uploaded (xx/yy/zz)
+  t = time uploaded (xx:yy:zz)
+  c = download count
+
++ _t3 and _t4 fixed.
+
++ 'No seenby line in msg #xxx' errorlog entry now also shows area # where
+  problem was found.
+
++ In the menu language you can omit the elsecommand and flags if these are
+  not needed (looks neater), eg this is now valid:
+
+  *,"Bulletins","GOTO bulletins"
+
+  ... and implies ...
+
+  *,"Bulletins","GOTO bulletins","",0,NONE

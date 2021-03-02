@@ -1,0 +1,6 @@
+DOING "Checking mail"
+ECHO "{cls fgbg wb} ___       __   __{eol |}"
+ECHO "  |  \/\/ (__) (__  {fg c}Your e-mail, o small {fg g}green {fg c}one...{eol |}"
+ECHO "{eol | |}"
+CHECKMAIL
+GOTO mainmenu

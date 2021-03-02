@@ -1,0 +1,13 @@
+DOING "Welcome"
+IF L=5 ECHO "{cls bfgbg wb}                                   New user{eol std}"
+IF L=10 ECHO "{cls bfgbg wb}                              Unsubscribed user{eol std}"
+IF L=20 ECHO "{cls bfgbg wb}                               Subscribed user{eol std}"
+ECHO
+TYPE "<ARCbbs$text>.Welcome"                                   
+ECHO "{bfgbg cb}                           Press any key to continue{eol std}"
+ANYKEY
+TYPE "<ARCbbs$text>.Welcome2"                                   
+ECHO "{bfgbg cb}                           Press any key to continue{eol std}"
+ANYKEY
+PATH "cryton"
+GOTO do.checkmail

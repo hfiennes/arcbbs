@@ -1,0 +1,4 @@
+TYPE <ARCbbs$text>.b1
+ECHO "{_>0023 bfgbg wb}                                Press any key{eol std}"
+ANYKEY
+GOTO bulletins

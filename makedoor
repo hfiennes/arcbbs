@@ -1,0 +1,2 @@
+dir <obey$dir>
+aasm s.doormodule !ARCserver.DoorModule -module -stamp -quit

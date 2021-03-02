@@ -1,0 +1,9 @@
+{cls bfgbg wb}  __ __    __ __ __{eol}
+ /  /  /_/  // // / {fg c}Welcomes {fg w _u0 fg c} (#{_#}){eol}
+{fg w}/_ /    /  //_// /  {fg c}You've called {fg w _u3} {fg c}times, and are caller {fg w _i3 fg c}.{eol}
+                    {fg c}Last call: {fg w _tl eol}
+{eol std}
+
+{_>0020 bfgbg wb} 662Mb now online!                                                  Multiline{eol std}
+{bfg y}0749 679794 {fg g}( 300-2400, 2 lines, MNP5/v42bis)
+{fg y}0749 670030 {fg g}(1200-14k4, 2 lines, MNP5/v42bis)

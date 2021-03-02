@@ -1,0 +1,37 @@
+# Project:   SparkMail
+
+
+# Toolflags:
+CCflags = -c -depend !Depend -throwback -IC:
+Linkflags = -o $@
+ObjAsmflags = -depend !Depend -ThrowBack -Stamp -quit -CloseExec
+CMHGflags = 
+LibFileflags = -c -o $@
+Squeezeflags = -o $@
+AAsmflags = -depend !Depend -quit -CloseExec -To $@ -From
+
+
+# Final targets:
+@.!SparkMail.!RunImage:   @.o.arcmail @.^.^.RISC_OSLib.o.RISC_OSLib \
+        @.^.^.Clib.o.Stubs @.^.^.Clib.o.Utils 
+        link $(linkflags) @.o.arcmail @.^.^.RISC_OSLib.o.RISC_OSLib \
+        @.^.^.Clib.o.Stubs @.^.^.Clib.o.Utils 
+
+
+# User-editable dependencies:
+
+
+# Static dependencies:
+@.o.arcmail:   @.c.arcmail
+        cc $(ccflags) -o @.o.arcmail @.c.arcmail 
+
+
+# Dynamic dependencies:
+o.arcmail:	c.arcmail
+o.arcmail:	C:h.utils
+o.arcmail:	C:h.wimp
+o.arcmail:	C:h.os
+o.arcmail:	C:h.sprite
+o.arcmail:	C:h.wimpt
+o.arcmail:	C:h.os
+o.arcmail:	C:h.werr

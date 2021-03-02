@@ -1,0 +1,385 @@
+-------------------------------------------------------------------------------
+Changes in latest version 08-July-93                                       1.64
+-------------------------------------------------------------------------------
+
++ All logons now have full ANSI snoop.
+
+- Problem with scripts picking up old executions on non-binkley lines if line
+  dropped during script run.
+
++ fido.data.areas now can inherit zone/net/node from previous entry, eg:
+
+  23 ARCHIMEDES 2:252/102.0 .1 .2 254/27.1 28
+
+  is equivalent to
+
+  23 ARCHIMEDES 2:252/102.0 2:252/102.1 2:252/102.2 2:254/27.1 2:254/28.0
+
+  Note you MUST have a full entry as the first address on the line.
+
++ '?' can be defined as a menu function, and will override the default action.
+
+-------------------------------------------------------------------------------
+Changes in latest version 30-March-93                                      1.63
+-------------------------------------------------------------------------------
+
++ Modem file changed rather radically. Proper config-type file now, only one
+  (long) modem init line (like binkley), comments allowed, etc:
+
+  ; HST modem driver
+  ;
+  ; Serial port driver module (block driver)
+  driver internal
+  port 0
+  ;
+  ; Speeds as before
+  txspeed 19200
+  rxspeed 19200
+  ;
+  ; Modem type - can be 'hayes' or 'pipe': pipes just give
+  ; connect when dcd goes high (speeds are irrelevant)
+  modem hayes
+  ;
+  ; Baud set type - can be 'set', 'lock', 'hst' or 'hayes' (hayes V-series)
+  baud hst
+  ;
+  ; Ring response - can be 'ata' or omit lime completely
+  ringresponse ata
+  ;
+  ; Welcome text file
+  welcometext <ARCbbs$text>.logon1
+  ;
+  ; Line password line (if needed)
+  ; linepassword pw
+  ;
+  ; Modem initialisation
+  modeminit AT&B2&W|~~ATE1Q0V1X1B0F1M1&A2&G2&H1|~AT&I0&J0&K1&L0&M4&N0&P1&C1|~
+  (SAME LINE CONT)             ... ATS27=0&R2S2=255S28=8&Y0S0=0S9=1S10=3H0|
+
++ As you can see from above, you'll need a modem file for each line (even
+  if they have the same modem on them). The 'pipe' works with the pipe
+  block driver that pipes data (via the ARCbbs pipe module currently) to
+  another application. Using this method, an ARCterm modem server can
+  offer an arcbbs port as a remote serial connection, allowing network
+  logons.
+
+  Note that now there is *no connection* between the ARCbbs port number
+  and any hardware port number. This also means you have to have a modem
+  file for every BBS line (specifying the hardware port number).
+
+  If you are using Intelligent Interface Dual RS423 cards you will need
+  to make use of the 'Internal2' and 'II_Dual' drivers - the Internal2
+  driver must be used for the internal port as this driver reselects
+  the port in case the II_Dual driver has selected an II port.
+
++ ARCterm 7 script language added to ARCbbs. This is currently in an early
+  state, but should be useful even now: it allows direct access to some
+  system information and allows intelligence to be built in. Errors are
+  logged to the errorlog. Scripts are designed to be run from the menu
+  language, not to run the whole BBS, as a C-style programming language
+  is a bit heavy for all the menus (I will be neatening up the menu language
+  too soon). As with ARCterm, on loading the script is compressed and 
+  tokenised before being run, and this first pass will show up some errors
+  in the code. Scripts are run with the 'SCRIPT <filename>' command.
+
+  NOTE: You need to set ARCbbs$Script! Usually set it to <ARCserver$Dir>.Script
+  ARCbbs looks to include the script file <ARCbbs$script>.Library when
+  the bbs slave task loads. Global variables are kept between script
+  runs.
+
+  I have (almost almost working) a replica of the user logon sequence
+  (including new user logon), but using a script, allowing very configurable
+  front-ends - this will be out in the next release.
+
++ Rerouted messages now have via lines of the form:
+
+  Via ARCbbs z:n/n, date at time
+
+  Which is neater & more standard.
+
++ If no user called 'areafix' exists the message gets appended to the file
+  "<ARCbbs$areafix>". This is only temporary though, when the new msgbase
+  format comes into effect then you will be able to redirect inbound mail
+  for a user to a file.
+
++ cliupload [filearea] [uploading-user] [bbs-filename] [short-desc] [realname]
+  Uploads a file to the bbs from the cli.
+
++ cliflist [filename] [listopts]
+  Generates a filelist (not multitasking). [listops] defines the contents of
+  the filelist, the headings are automatically generated:
+
+  # = filenumber
+  n = filename
+  l = filelength
+  s = short description
+  d = date uploaded (xx/yy/zz)
+  t = time uploaded (xx:yy:zz)
+  c = download count
+
++ _t3 and _t4 fixed.
+
++ 'No seenby line in msg #xxx' errorlog entry now also shows area # where
+  problem was found.
+
++ In the menu language you can omit the elsecommand and flags if these are
+  not needed (looks neater), eg this is now valid:
+
+  *,"Bulletins","GOTO bulletins"
+
+  ... and implies ...
+
+  *,"Bulletins","GOTO bulletins","",0,NONE
+ 
+-------------------------------------------------------------------------------
+Changes in latest version                                                 1.62f
+-------------------------------------------------------------------------------
+
++ New system variable: ARCbbs$systemlog - points to a file into which system
+  logging information is put, eg fidonet export/import counts, bad password
+  attempts, etc.
+
++ File searches now display number of files searched periodically, and also
+  at the end show total files searched and number of matches. There might
+  also be a small speedup due to code tweaking.
+
++ Fidonet export speeded up, more packet files kept open than before.
+
++ Fido truncates long (>16k) messages.
+
+-------------------------------------------------------------------------------
+Changes in latest version                                                 1.62e
+-------------------------------------------------------------------------------
+
++ System variables galore!
+
+  If you set ARCbbs$Spark to "Y" and put Spark inside the ARCserver directory,
+  it will load it automatically.
+
+  Set ARCbbs$Mailer to the pathname of your chosen mailer.
+  ARCmail should always reside INSIDE the mailer's application directory
+  (ie it is run as <ARCbbs$Mailer>.Arcmail).
+
+  Set ARCbbs$MailerTaskName to the task name of your mailer, eg
+  "BinkleyTerm_%d"
+
+  NOTE: ARCbbs still looks for Binkley$ReturnX where X is the port number,
+  numbered from 0, and ARCbbs_M still expects to find a BBS_X file inside
+  the mailer directory to tell it the caller's speed, etc.
+
+  Set ARCbbs$OutboundBase to the directory in which the various outbound
+  folders reside.
+
+  Set ARCbbs$Inbound to the inbound directory (not the directory in which
+  the inbound resides, but the actual inbound).
+
+  For your old system to continue working, use the following in your
+  !ARCserver.!Run file after the binkley setup: (only applicable if you are
+  upgrading from <1.62e)
+
+  Set ARCbbs$Mailer <Binkley$Dir>
+  Set ARCbbs$MailerTaskName "BinkleyTerm_%d"
+  Set ARCbbs$OutboundBase <Binkley$Dir>
+  Set ARCbbs$Inbound <Binkley$Dir>.Inbound
+
+-------------------------------------------------------------------------------
+Changes in latest version                                                 1.62d
+-------------------------------------------------------------------------------
+
++ Fido import/export/dearc is now conditionally compiled, this saves about 10k
+  from bbs slaves (they didn't import/export anyway any more).
+
++ When exporting echomail, fido.c no longer opens the packet then closes and
+  deletes if nothing was written, it just doesn't open it until it has to
+  export the first message into the packet.
+
+- When importing from one of its own points, fido.c now sets the .SEENBY of
+  the point the message was imported from so that it doesn't re-export it
+  immediately to the point it came from.
+
+-------------------------------------------------------------------------------
+Changes in latest version                                                 1.62c
+-------------------------------------------------------------------------------
+
++ 'Downloaded' flag set when mail downloaded so it won't be downloaded
+  again. This flag is displayed when mail is being read manually too.
+
++ Fido export now shows destination it is exporting to in the window.
+
+- Bug in line editor search & replace fixed.
+
++ Filing messages might be very very very marginally quicker now - removed
+  a sprintf() from message loop and put it in display code.
+
++ Tearline moved to version.c file.
+
++ Server database statistics added: the 'Database status' option on the
+  main menu calculates the information and displays it in a dialog box:
+
+  Lookup: Map usage  - This shows when the map will need expanding, ie the
+                       percentage of space in the lookupmap that is used
+                       by the current lookup file. Expand it at 80 or 90%
+                       to make sure it doesn't overflow when you're not
+                       looking.
+
+          File usage - This shows the percentage of active headers in the
+                       lookup file - if this gets too low, then it would
+                       be a good idea to export/reimport or use the new
+                       compression utility when I write it so you can
+                       reuse the space (make the lookup file smaller).
+
+          Highest    - Highest message # in use (directly related to
+                       size of lookup file)
+
+          Active     - Number of active messages in lookup file.
+
+          Dead       - (=Highest-Active) the number of unused message
+                       headers in the message file that can only be used
+                       for private mail, and would be removed by
+                       compressing the message base.
+
+  Data:   Map usage  - As for lookup.
+
+          File usage - This shows the percentage of active text blocks in
+                       the data file.
+
+  Note this information is calculated when the dialog opens, and won't update
+  dynamically while the dialog is onscreen.
+
+- Bug with fido re-routing fixed - when a message was rerouted it always
+  appeared to come from 0/0 - this bug has existed ever since routing was
+  implemented and no-one complained (not even Stefan!). Weird!
+
+- Bug that caused a point writing mail to another point to go into a PT
+  directory fixed. Note that all points should ZoneMap all zones to their
+  boss.
+
+- Bug that caused a point to show nodenumber twice in SEENBYs fixed.
+
++ Writing fidonet netmail now asks for name, then node - more friendly that
+  way.
+
++ servcomm.c changed so that lastmsg is only compiled for BBS tasks (you can
+  remove the mail_block *lastmsgs's now Dave!)
+
++ New BBS module included - turns IRQs on directly as opposed to using SWI
+  OS_IntOn (quicker), and also has a couple of extra SWIs needed for the
+  Database statistics.
+
+-------------------------------------------------------------------------------
+Changes in latest version                                                 1.62b
+-------------------------------------------------------------------------------
+
++ Private mail can now be included in message download by offering option
+  S_MESSAGE P.
+
++ Sysop may have ^A lines in downloads by setting ARCbbs$TheWorks to "Yes".
+
+- 8 bit characters can be entered and edited in any input line.
+
+- local logon recoded. Flashing cursor, displays flashing characters,
+  correct colours for RO3.1, spool text, save as text, sprite from window!
+
+- last character on chat window line now correctly redrawn - also top bit
+  set characters can be entered (but window uses system chars anyway!)
+
++ Userlist search will match to any valid chars in target line - so you
+  can list all users for particular day etc.
+
+- When Write clicked in area editor causes immediate write to disc.
+
+- Line editor search-and-replace takes account of soft and hard line
+
+  breaks, now always allows longer replaces.
+
++ new CLI command OSCLI (!) (!use with care!) Eg. To view directory:
+  OSCLI ". { > RAM:TEST }"
+  TYPE RAM:TEST
+
+- Netmail message send can be aborted by just pressing return on empty
+  field, and pre-addressed netmails or replies to netmail now abort if
+  node number not found.
+
+- Fixed problem where duplicate net was created in SEENBY line when
+  exporting node's net was same as the following net/node in list.
+
++ Timetravel now works on all messages - BUT only for messages stored
+  after installation of this version. Otherwise time travel will go back
+  to the year zero - takes a LONG time!
+
++ FidoNet packet format revised to FSC-0039.
+
++ 4D point support added! Up to 25 Points (1-25) can be supported.
+  Echomail export to points now possible, and replies to netmail messages
+  from external points will be sent back to Boss for collection.
+  (hopefully!)
+  "Hold" file can be used with 4D addresses to Hold export to points. Note
+  you can only export echomail to your own points!
+
++ Nodelist location now set by ARCbbs$Nodelist.
+
+- Users thrown out of MUchat if time up.
+
++ Fastcash not allowed!
+
++ Clicking select on server icon starts up a local logon.
+
+- Fixed export of echomail to boss not being created when boss in SEENBYs
+
++ Added Save Message option to local logon menu.
+
++ Added warning message "Message too long. It has been truncated", issued
+  when uploaded message is too long (>15K).
+
+Point operation
+===============
+
+1. No fakenodes anymore. Just set yourself up in the ournode line, if you're
+.0 you can automatically be a boss, if you're a point arcbbs should (I stress
+this, it hasn't been tested much) act as a point. Of course, you can only
+export to *your own* points.
+
+2. The whole of incoming messages are scanned for FMPT lines, so hopefully
+private mail will be replied to fine.
+
+3. Packet headers now include point and zone info as in FSC-0039.
+
+4. Point echomail contains a hidden kludge line (not exported) in the
+messagebase which is a ^A.SEENBY: line (point seenby), and uses one character
+per point (plus one for the boss) to check who the mail has been exported to
+(in reality, a-z, which goes into capitals when it's been seen by that point).
+This supports 25 points plus the boss. The highest point number currently
+supported is 25. In theory, points should be able to swap echomail between
+themselves (but NOT private mail) - but this is not recommended.
+
+5. Hold file supports 4d - if you just put your 3d address in as hold then all
+points will automatically become hold too. However, without a nodelist
+processor that handles 4d, nodes being anything apart from on hold might be
+fun.
+
+-------------------------------------------------------------------------------
+Changes in latest version                                                 1.62a
+-------------------------------------------------------------------------------
+
+- Fixed scratchpad file being left open if Zmodem aborted in certain
+  circumstances.
+
+- PATH line in Fidonet message packet builder checked for correct ending
+  before adding new data - was being chopped sometimes.
+
+- Colons removed from TOPT and FMPT in Fido packet headers.
+
+- Fixed EOF character entering buffer on files dropped in local logon
+  window.
+
+- Fixed temp (Batch/Scratch/Msg) files not being deleted after carrier
+  drop if binkley not used.
+
+- Updated online call costs to refelect current UK rates.
+
+- Fido packet header now includes Zone numbers (Ref FTS-0001 rev 15).
+
+- When a message is crossposted, the original to/from fields are preserved,
+  with the first line saying: Crossposted from <area> by <crossposter> -
+  so that replies to the moved message are directed to the correct person.
+

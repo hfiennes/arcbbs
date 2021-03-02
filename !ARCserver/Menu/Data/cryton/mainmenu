@@ -1,0 +1,28 @@
+| MainMenu
+DOING "Main menu"
+PROMPT "{bfgbg wb} Main Menu {fgbg rw} Command {bg n} "
+|
+Q,Questionnaire,QUESTION <ARCbbs$text>.Questions.1,,0,NONE
+=,Subscribe!,QUESTION <arcbbs$text>.Questions.3,,0,NONE
+P,Public boards,GOTO public,,0,NONE
+F,File sections,GOTO file,,0,NONE
+*,Bulletins,GOTO bulletins,,0,NONE
+M,Multiuser chat,GOTO do.muchat,,0,FU1
+O,Online userlist,GOTO do.online,,0,NONE
+C,Chat with Sysop,GOTO do.page,,0,FU2
+S,Send private mail,GOTO do.pri_write,,>f,NONE
+Y,Your account,GOTO your,,0,NONE
+R,Read private mail,GOTO do.checkmail,,0,NONE
+!,Write to Sysop,GOTO do.sys_write,,0,NONE
+G,Goodbye,GOTO goodbye,,0,NONE
+B,BBS cli,CLI,,0,FU6
+A,Animations,GOTO anim,,0,NONE
+N,Netmail,GOTO netmail,,0,NONE
+H,How much,CALLCOST,,0,NONE
+U,Userlist/search,GOTO do.userlist,,0,NONE
+`,Sysop utils,UTILS,,0,FU6
+4,Top 40 users,GOTO do.top40,,0,NONE
+X,Expert/novice,TOGFLAGS U3,,0,NONE
+/,,GOTO slash./,,0,NONE
+$,new menu,NEWMENU newmenu,,0,NONE
+|

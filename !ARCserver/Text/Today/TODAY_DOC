@@ -1,0 +1,169 @@
+
+                         ---TODAY---
+
+OVERVIEW
+Have you ever thought it would be nice to know what interesting
+things happened on a date in history?  When famous, or not so
+famous, birthdays occurred?  TODAY will tell you.  When the program
+is run, it looks at the system date, or a date you supply, then
+tells you what things of interest happened on that date.  You can
+even create a file of dates important to you and be reminded of them
+right along with the Marquis de Sade's birthday or the first
+commercial radio broadcast.  Just type: TODAY HELP
+
+INSTALLATION
+TODAY is distributed as an archive file(TODAY.ARC) and you must have
+ARC V5.0 or later to extract the required files.  ARC is shareware
+from System Enhancement Associates and is available on many computer
+bulletin boards.  The files comprising the TODAY system are:
+
+       TODAY.DOC - This file
+       TODAY.EXE - The program
+       TODAY.MON - where MON is JAN thru DEC.  These files contain
+                   all the interesting trivia.
+       TODAY.OWN - a sample personal TODAY message file
+
+After printing this DOC file, you need not keep it on disk but you
+will need the EXE and all the MON files.  They MUST all be in the
+same directory on your disk.  Why not call it TODAY?
+To install TODAY from the root directory, with ARC available, do:
+
+     md \today
+     cd \today
+     arc e today *.*
+     cd \
+
+This will create a directory called today and un-archive the files
+you need to use the system.
+
+To run it from your AUTOEXEC.BAT you would insert these three lines:
+
+     cd \today
+     today once clear wait      (use your choice of options)
+     cd \
+
+This example would change directories to TODAY's directory, run the
+program only once each day, clearing the screen at the beginning and
+waiting for a key press at the end before continuing with your BAT
+file.
+
+HOW TO USE THE PROGRAM
+You can just enter TODAY and get the scoop on the current date or
+you can optionally enter a date as MMDD, with leading zeros, to see
+what happened on a particular date.  There are several options:
+
+        MMDD    a date, such as 0401, to use instead of
+                the system date
+
+        HELP    will display running instructions
+
+        CLEAR   will clear the screen before displaying anything
+
+        WAIT    will wait for a key press after the display
+
+        ONCE    will only run TODAY once each day.  Without this
+                option it will display msgs each time it is run.
+                Used in an AUTOEXEC.BAT, it will only run TODAY
+                when you turn on your system, not when you reboot.
+
+Most of these options are useful when TODAY is run from an
+AUTOEXEC.BAT when you turn on your machine.  They cause the program
+to only run the first time you boot, not when you re-boot.  You can
+clear the screen of previous stuff before today's little gems and
+you can have a pause at the end so the messages aren't destroyed by
+subsequent programs.  For example:  TODAY CLEAR 0628
+
+CUSTOMIZATION
+TODAY has one data file for each month of the year.  They are named
+TODAY.JAN, .FEB, .MAR etc.  You can also have a personal file named
+TODAY.OWN.  This is so all your important dates aren't scattered
+among 12 files.  All files are plain vanilla ASCII in this format:
+
+Column 1:        The record type which can be a B for birthdays,
+                 S for special dates in history or R for a reminder.
+
+Cols 2-5:        Month and day as MMDD with leading zeros.  Zeros
+                 for either month or day cause ALL months or days
+                 to match when being scanned.  For example  0001
+                 would match the first of every month while 0400
+                 would match every day of April.
+
+Cols 6-9:        The full year of the event as four digits.
+                 May be left blank, msg will move left.
+
+Column 10:       A special processing flag.  Values may be:
+
+                 BLANK for no special processing.
+
+                 C to continue a message from the previous line.
+                 Note, that you MUST repeat the date fields.
+
+                 DAY-OF-WEEK DIGIT where 1=Sunday ... 7=Saturday
+                 This will cause the message to display only if the
+                 date falls on a certain day of the week.  Look in
+                 the November file for voting day examples.
+
+Cols 11-70       The message to display for this date.
+
+                       --EXAMPLES--
+
+*mmddyyyy Birthdays
+*-------- ------------------------------------------------------------
+B09011875 Edgar Rice Burroughs, novelist, Ah-ee-ah-ee-ah!
+B09021838 Queen Liliuokalani (last queen of Hawaii).
+B09021952 Jimmy Connors, tennis brat
+
+*mmddyyyy Events
+*-------- ------------------------------------------------------------
+S09011939 Germany invades Poland, starts World War II.
+S09011952 Sutro Baths purchased by George Whitney.
+S0901    2Labor Day, a legal holiday
+S09021620 The Mayflower sets sail from Plymouth with
+S09021620C102 Pilgrims.
+
+*mmddyyyy Reminders
+*-------- ------------------------------------------------------------
+R0001     Pay the mortgage!
+R0401     Taxes due in two weeks.
+R0415     Last day to pay taxes!
+
+Leave the headings in or you may get a nasty surprise.  Note that
+Labor day must be on a Monday and the Mayflower gets two lines of
+coverage befitting that momentous event.
+
+This format applies to TODAY.OWN also.  You can put in birthdays,
+anniversaries, holidays etc.  Messages in your personal file will
+tend to be only Birthdays and Reminders.  Also, try putting in
+reminders a few days BEFORE the date in question to give youself
+some warning.
+
+HISTORY
+TODAY/PC was written in Datalight C for IBM PC compatible systems by
+Patrick Kincaid in July of 1986.  It was inspired by a program
+originally written by Mike Butler in PL/1 on an IBM VM/CMS system.
+He should be credited with the original concept and the bulk of the
+wonderful data in the files.  You will notice a distinct San
+Francisco flavor to the databases.  Who says programs can't have
+class?
+
+USER SUPPORT
+Don't send money, send more dates!  I would like the program
+distributed far and wide for free with this understanding: if you
+like it send me more dates to put in the databases.  This way we can
+create real shareware. Don't send the month files with your new
+dates added, send the new stuff as listings, in standalone files on
+PC diskettes or as electronic mail to me via the Marin-Sonoma PC User
+Group BBS (415) 927-1216.  You can mail listings, bugs (features!) or
+suggestions to:
+
+                    Patrick Kincaid
+                   618 Douglas Drive
+                 Mill Valley, CA 94941
+
+And remember...
+
+                   We call it software
+                        because
+                    we cannot keep it
+                           up.
+

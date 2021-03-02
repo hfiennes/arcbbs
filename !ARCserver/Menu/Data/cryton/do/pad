@@ -1,0 +1,7 @@
+ECHO "{cls}"
+DOING "Connected to PAD"
+SETSPEED 0 9600
+CALL 0
+ECHO "{_>0023 bfgbg wb}                                Press any key{eol std}"
+ANYKEY
+GOTO mainmenu

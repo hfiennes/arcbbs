@@ -1,0 +1,18 @@
+| Back in time
+DOING "Time Travel"
+PROMPT "{bfgbg wb} Old messages {fgbg rw} Command {bg n} "
+|                
+1,Back 1 day,SETMAIL 1 M,,0,NONE
+2,Back 2 days,SETMAIL 2 M,,0,NONE
+3,Back 3 days,SETMAIL 3 M,,0,NONE
+4,Back 4 days,SETMAIL 4 M,,0,NONE
+5,Back 5 days,SETMAIL 5 M,,0,NONE
+6,Back 6 days,SETMAIL 6 M,,0,NONE
+W,Back a week,SETMAIL 7 M,,0,NONE
+A,Back a month,SETMAIL 30 M,,0,NONE
+C,Catch up,SETMAIL 0 M,,0,NONE
+M,Main menu,GOTO mainmenu,,0,NONE
+R,Return to msg menu,GOTO public,,0,NONE
+X,Expert/novice,TOGFLAGS U3,,0,NONE
+/,,GOTO slash./,,0,NONE
+|

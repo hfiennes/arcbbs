@@ -1,0 +1,8 @@
+ECHO "{cls bfgbg wb}  ___       __   __{eol |}" 
+ECHO "   |  \/\/ (__) (__                                                {fg c}Newsletter{eol |}"
+ECHO "{eol std | |}"  
+TYPE <ARCbbs$text>.newsletter
+ECHO "{_>0023 bfgbg wb}                                Press any key{eol std}"
+ANYKEY
+GOTO a_order
+

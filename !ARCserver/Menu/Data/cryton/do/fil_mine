@@ -1,0 +1,8 @@
+ECHO "{cls bfgbg wb}  ___       __   __{eol |}" 
+ECHO "   |  \/\/ (__) (__                               {fg c}List all joined file areas{eol |}"
+ECHO "{eol |}"
+CONF_MEMBER FILE
+ECHO "{bfgbg wb}                             Press any key{eol std}"
+ANYKEY
+ECHO
+GOTO file

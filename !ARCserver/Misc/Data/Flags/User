@@ -1,0 +1,19 @@
+;
+; User flag names
+;
+;#  Flag name
+;-  --------------------
+0   file_access
+1   multiuser_chat
+2   page_sysop
+3   novice_menus
+4   voted
+5   registered
+6   sysop
+7   reset_time
+8   outbox_enabled
+11  proterm_menus
+27  no_char_requests
+28  no_cls
+29  no_more
+30  dynamic_addressing

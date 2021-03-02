@@ -1,0 +1,18 @@
+#
+# Makefile for ARCbbs Areaedit
+#
+
+CC     = cc
+CFLAGS = -Wn -c -I$.RISC_OSlib -DEXT -DSERVER
+LN     = link
+LIB    = $.Clib.o.Stubs $.RISC_OSlib.o.RISC_OSlib
+
+!ARCserver.!AREAedit.!RunImage : o.area o.servcomme
+  $(LN) $(LIB) o.area o.crc o.modcomma o.servcomme -o !ARCserver.!AREAedit.!RunImage
+  squeeze !ARCserver.!AREAedit.!RunImage
+
+o.area : c.area h.mail
+  $(CC) $(CFLAGS) area
+
+o.servcomme : c.servcomm h.userlog h.mail
+  $(CC) $(CFLAGS) servcomm -oo.servcomme

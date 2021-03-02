@@ -1,0 +1,221 @@
+;                    _____________________________________________
+;                  [>                                             <]
+;Project           [> ARCbbs/ARCterm                              <]
+;Author            [> Hugo Fiennes                                <]
+;Date started      [> 04-April-1989                               <]
+;                  [>                                             <]
+;Module name       [> Script command lookup                       <]
+;Current version   [> 00.03                                       <]
+;Version date      [> 23-October-1991                             <]
+;State             [> Unfinished                                  <]
+;                  [>                                             <]
+;                  [>    This source is COPYRIGHT (c) 1991 by     <]
+;                  [>      Hugo Fiennes of The Serial Port        <]
+;                  [>_____________________________________________<]
+
+; SWI values
+
+WriteC        * &00
+CLI           * &05
+Byte          * &06
+SerialOp      * &57
+
+XOS_MASK      * &00020000 ; mask to make a swi a RISC OS v-error swi
+
+; ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+; Register names   Modified for new call standard (GOD acorn, I wish you'd
+;                  stop chaging your mind...)
+; ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+a1 RN 0
+a2 RN 1
+a3 RN 2
+a4 RN 3
+v1 RN 4
+v2 RN 5
+v3 RN 6
+v4 RN 7
+v5 RN 8
+v6 RN 9
+sl RN 10
+fp RN 11
+ip RN 12
+sp RN 13
+lk RN 14
+pc RN 15
+
+ AREA |C$$code|, CODE, READONLY
+
+;--- script_findcommand -------------------------------------------------------
+; Find command pointer
+
+        EXPORT  script_findcommand
+        IMPORT  stricmp
+script_findcommand
+        STMFD   sp!,{v1-v4,lk}
+        MOV     v1,#-1
+        LDR     v2,[a1]          ; Get first 4 bytes of function name
+        TST     v2,#&00ff0000
+        BICEQ   v2,v2,#&ff000000
+        MOV     v3,a1
+        MOV     v4,a2
+
+sfc_loop
+        ADD     v1,v1,#1
+        LDR     a1,[v4,v1,LSL#5] ; Get try
+        CMP     v2,a1
+        BEQ     sfc_found
+        ANDS    a1,a1,#&ff       ; Starts with null? If so, end!
+        BNE     sfc_loop
+        
+        MOV     a1,#-1
+        LDMFD   sp!,{v1-v4,pc}^
+
+sfc_found
+        MOV     a2,v3
+        ADD     a1,v4,v1,LSL#5
+        BL      stricmp
+        CMP     a1,#0
+        BNE     sfc_loop
+        MOV     a1,v1
+        LDMFD   sp,{v1-v4,pc}^
+
+;--- eval_exp_2(char **exp,int *answer) ---------------------------------------
+                          
+OP_AND  * 130
+OP_OR   * 131
+        IMPORT  tokn     
+        IMPORT  get_token
+
+        EXPORT  eval_exp_2
+eval_exp_2
+        STMFD   sp!,{a1-a2,lk}
+        BL      eval_exp_3
+eval_exp_2a
+        LDR     a3,=tokn
+        LDRB    a3,[a3]
+        CMP     a3,#OP_OR
+        LDMNEFD sp!,{a1-a2,pc}
+                              
+        SUB     sp,sp,#4
+        LDR     a1,[sp,#4]
+        BL      get_token
+        LDR     a1,[sp,#4]
+        MOV     a2,sp
+        BL      eval_exp_3
+        LDR     a2,[sp,#8]
+        LDR     a1,[a2]
+        LDR     a3,[sp]
+        CMP     a1,#0
+        CMPEQ   a3,#0
+        MOVEQ   a1,#0
+        MOVNE   a1,#1
+        STR     a1,[a2]
+        ADD     sp,sp,#4
+        BAL     eval_exp_2a
+ 
+;--- eval_exp_3(char **exp,int *answer) ---------------------------------------
+                          
+eval_exp_3
+        STMFD   sp!,{a1-a2,lk}
+        BL      eval_exp_4
+eval_exp_3a
+        LDR     a3,=tokn
+        LDRB    a3,[a3]
+        CMP     a3,#OP_AND
+        LDMNEFD sp!,{a1-a2,pc}
+                              
+        SUB     sp,sp,#4
+        LDR     a1,[sp,#4]
+        BL      get_token
+        LDR     a1,[sp,#4]
+        MOV     a2,sp
+        BL      eval_exp_4
+        LDR     a2,[sp,#8]
+        LDR     a1,[a2]
+        LDR     a3,[sp]
+        CMP     a1,#0
+        CMPNE   a3,#0
+        MOVEQ   a1,#0
+        MOVNE   a1,#1
+        STR     a1,[a2]
+        ADD     sp,sp,#4
+        BAL     eval_exp_3a
+
+;--- eval_exp_4(char **exp,int *answer) ---------------------------------------
+          
+eval_exp_4
+        STMFD   sp!,{a1-a2,lk}
+        BL      eval_exp_5
+eval_exp_4a
+        LDR     a3,=tokn
+        LDRB    a3,[a3]
+        CMP     a3,#'|'
+        LDMNEFD sp!,{a1-a2,pc}
+                              
+        SUB     sp,sp,#4
+        LDR     a1,[sp,#4]
+        BL      get_token
+        LDR     a1,[sp,#4]
+        MOV     a2,sp
+        BL      eval_exp_5
+        LDR     a2,[sp,#8]
+        LDR     a1,[a2]
+        LDR     a3,[sp]
+        ORR     a1,a1,a3
+        STR     a1,[a2]
+        ADD     sp,sp,#4
+        BAL     eval_exp_4a
+
+;--- eval_exp_5(char **exp,int *answer) ---------------------------------------
+          
+eval_exp_5
+        STMFD   sp!,{a1-a2,lk}
+        BL      eval_exp_6
+eval_exp_5a
+        LDR     a3,=tokn
+        LDRB    a3,[a3]
+        CMP     a3,#'^'
+        LDMNEFD sp!,{a1-a2,pc}
+                              
+        SUB     sp,sp,#4
+        LDR     a1,[sp,#4]
+        BL      get_token
+        LDR     a1,[sp,#4]
+        MOV     a2,sp
+        BL      eval_exp_6
+        LDR     a2,[sp,#8]
+        LDR     a1,[a2]
+        LDR     a3,[sp]
+        EOR     a1,a1,a3
+        STR     a1,[a2]
+        ADD     sp,sp,#4
+        BAL     eval_exp_5a
+
+;--- eval_exp_6(char **exp,int *answer) ---------------------------------------
+                          
+        IMPORT  eval_exp_7
+eval_exp_6
+        STMFD   sp!,{a1-a2,lk}
+        BL      eval_exp_7
+eval_exp_6a
+        LDR     a3,=tokn
+        LDRB    a3,[a3]
+        CMP     a3,#'&'
+        LDMNEFD sp!,{a1-a2,pc}
+                              
+        SUB     sp,sp,#4
+        LDR     a1,[sp,#4]
+        BL      get_token
+        LDR     a1,[sp,#4]
+        MOV     a2,sp
+        BL      eval_exp_7
+        LDR     a2,[sp,#8]
+        LDR     a1,[a2]
+        LDR     a3,[sp]
+        AND     a1,a1,a3
+        STR     a1,[a2]
+        ADD     sp,sp,#4
+        BAL     eval_exp_6a
+
+        END

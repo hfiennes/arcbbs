@@ -1,0 +1,11 @@
+PROMPT "{_>0000 bfgbg bw} Shortcut (! for help) {fgbg wb eol} /"
+!,"","GOTO slash.help","",0,NONE
+/,"","GOTO slash./","",0,NONE
+A,"","GOTO slash./a","",0,NONE
+B,"","GOTO slash./b","",0,NONE
+F,"","GOTO slash./f","",0,NONE
+M,"","GOTO slash./m","",0,NONE
+O,"","GOTO slash./o","",0,NONE
+P,"","GOTO slash./p","",0,NONE
+S,"","GOTO slash./s","",0,NONE
+Y,"","GOTO slash./y","",0,NONE

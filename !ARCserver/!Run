@@ -1,0 +1,27 @@
+|
+| ARCserver !Run file v1.14, 01-December-1992
+|
+WimpSlot -min 320k -max 320k
+IconSprites <Obey$Dir>.!Sprites
+|
+Set ARCserver$Dir <Obey$Dir>
+Obey <ARCserver$Dir>.!Config
+|
+| Ensure correct system modules
+RMensure SharedClibrary 3.75 RMload System:modules.Clib
+RMensure SharedClibrary 3.75 Error 0 You need SharedClibrary 3.75 or later
+RMEnsure ColourTrans 0.52 RMLoad System:modules.Colours
+RMEnsure ColourTrans 0.52 Error 0 You need ColourTrans 0.52 or later
+|
+| Ensure correct ARCbbs modules
+RMensure ARCbbs_Filer 0.38 RMload <ARCserver$Dir>.BBSmodule
+RMensure ARCbbs_Filer 0.38 Error 0 You need ARCbbs_Filer 0.38 or later
+RMensure ARCbbs_Doors 0.04 RMload <ARCserver$Dir>.DoorModule
+RMensure ARCbbs_Doors 0.04 Error 0 You need ARCbbs_Doors 0.04 or later
+|
+| Run the BBS!
+Run <ARCserver$Dir>.!RunImage
+|         
+| Kill off the modules afterwards
+RMkill ARCbbs_Filer
+RMkill ARCbbs_Doors

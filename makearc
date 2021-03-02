@@ -1,0 +1,3 @@
+cc arcmail -c -I$.risc_oslib
+link -o !SparkMail.!RunImage o.arcmail $.clib.o.utils $.clib.o.stubs $.risc_oslib.o.risc_oslib
+Squeeze !SparkMail.!RunImage

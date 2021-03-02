@@ -1,0 +1,4 @@
+cc -c -zM c.mug_buffer
+cmhg cmodhdr o.cmodhdr
+link -o MUGmodule -m o.mug_buffer o.cmodhdr $.clib.o.stubs
+Mugmodule

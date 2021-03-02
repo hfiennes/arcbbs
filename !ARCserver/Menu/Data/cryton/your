@@ -1,0 +1,16 @@
+| Your
+DOING "Account"
+PROMPT "{bfgbg wb} Account {fgbg rw} Command {bg n} "
+|
+P,Change password,SET PASSWORD
+T,Change terminaltype,SET TERMINAL
+C,Call rate,GOTO callrate
+M,Main menu,GOTO mainmenu
+L,Length of page,SET PAGELENGTH
+!,More? prompting,SET MORE
+S,Screen clearing,SET CLEARSCREEN
+A,Allow MU chat paging,CLRFLAGS UR
+D,Disallow MU chat paging,SETFLAGS UR
+X,Expert/novice,TOGFLAGS U3
+/,,GOTO slash./
+|

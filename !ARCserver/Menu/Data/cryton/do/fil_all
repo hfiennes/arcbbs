@@ -1,0 +1,9 @@
+ECHO "{cls bfgbg wb}  ___       __   __{eol |}" 
+ECHO "   |  \/\/ (__) (__                            {fg c}List all available file areas{eol |}"
+ECHO "{eol |}"
+ECHO "{fgbg rw}                   Note{std bfgbg rw}: To join the areas, use the + command{eol |}"
+CONF_LIST FILE
+ECHO "{bfgbg wb}                             Press any key{eol std}"
+ANYKEY
+ECHO
+GOTO file

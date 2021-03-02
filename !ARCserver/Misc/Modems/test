@@ -1,0 +1,13 @@
+; Pipe driver
+;
+driver internal
+port 0
+;
+txspeed 19200
+rxspeed 19200
+;
+modem direct
+;
+welcometext <arcbbs$text>.logon1
+;
+modeminit Hello|

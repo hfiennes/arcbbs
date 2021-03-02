@@ -1,0 +1,5 @@
+ECHO "{std cls bfgbg wb}  ___       __   __{eol |}" 
+ECHO "   |  \/\/ (__) (__                                            {fg c}Multiuser chat{eol |}"
+ECHO "{eol std |}"
+CHAT 1
+GOTO mainmenu

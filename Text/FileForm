@@ -1,0 +1,15 @@
+Filebase entry format
+---------------------
+
+#000000 filename            <- Filename information
+01/01/92 16:16              <- Time/date
+Hugo Fiennes                <- Uploader
+                            <- Path of file (blank = use standard path)
+volatile hidden             <- flags
+Short description           <- Short description
+Long description            <- 
+..
+..
+..
+
+[eof or another record]

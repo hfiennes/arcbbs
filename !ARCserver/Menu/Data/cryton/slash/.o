@@ -1,0 +1,4 @@
+PROMPT "{_>2500}o"
+!,"","GOTO slash.help","",0,NONE
+/,"","GOTO slash./","",0,NONE
+F,"","GOTO slash./of","",0,NONE

@@ -1,0 +1,8 @@
+ECHO "{cls bfgbg wb}  ___       __   __{eol |}" 
+ECHO "   |  \/\/ (__) (__                                            {fg c}Short filelist{eol |}"
+ECHO "{eol std | |}"  
+FILELIST C SHORT
+ECHO "{_>0023 bfgbg wb}                                Press any key{eol std}"
+ANYKEY
+ANYKEY
+GOTO file

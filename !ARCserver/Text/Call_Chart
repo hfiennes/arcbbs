@@ -1,0 +1,22 @@
+{std cls bfgbg wb}    _._  _._  _._  _._  _._  _._{eol}
+{fgbg wb}   //^\\//^\\//^\\//^\\//^\\//^\\     {bg n fgbg rw}     Arcade BBS daily usage report     {bg b} {eol}
+{fgbg wb}   Y   YY   YY   YY   YY   YY   Y     {bg n fgbg rw}      Saturday 7th September 1991      {bg b} {eol}
+{fgbg wb}   |   ||   ||   ||   ||   ||   |     {bg n fgbg rw}    Calls: {fg b}30{fg r} Logoffs: {fg b}25{fg r} Drops: {fg b}5     {bg b} {eol}
+{fgbg wb}     A    R    C    A    D    E       {bg n fgbg rw} Speeds - V21 {fg b}1%{fg r} V22/23 {fg b}16%{fg r} V22bis {fg b}83% {bg b} {eol}
+{eol bg n}
+
+{bfg c}C 12{fg y}-|{fg r}                                                                         
+{bfg c}a    {fg y}|{fg r}                                                                         
+{bfg c}l 10{fg y}-|{fg r}                                                                         
+{bfg c}l    {fg y}|{fg r}                                                                         
+{bfg c}s  8{fg y}-|{fg r}                                                                         
+{bfg c}     {fg y}|{fg r}                                                                         
+{bfg c}L  6{fg y}-|{fg r}                                                                         
+{bfg c}o    {fg y}|{fg r}                                                                         
+{bfg c}g  4{fg y}-|{fg r}                                                            {bg r}*{bg n}      {bg r}*{bg n}     
+{bfg c}g    {fg y}|{fg r bg r}*{bg n}  {bg r}**{bg n}                                                       {bg r}***{bg n}    {bg r}*{bg n}  {bg r}***{bg n}
+{bfg c}e  2{fg y}-|{fg r bg r}*{bg n}  {bg r}***{bg n}                                                      {bg r}****{bg n} {bg r}********{bg n}
+{bfg c}d    {fg y}|{fg r bg r}******{bg n}                     {bg r}**{bg n}                              {bg r}**************{bg n}
+{fg c}   0{fg y}--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
+{fg c}     00  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24
+{fg c}                                   Time of day

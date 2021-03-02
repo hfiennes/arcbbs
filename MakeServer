@@ -1,0 +1,25 @@
+# Project:   Server
+
+
+# Toolflags:
+CCflags = -c -depend !Depend -throwback -IC:
+Linkflags = -o $@
+ObjAsmflags = -depend !Depend -ThrowBack -Stamp -quit -CloseExec
+CMHGflags = 
+LibFileflags = -c -o $@
+Squeezeflags = -o $@
+AAsmflags = -depend !Depend -quit -CloseExec -To $@ -From
+
+
+# Final targets:
+@.!ARCserver.!RunImage:   
+        link $(linkflags) 
+
+
+# User-editable dependencies:
+
+
+# Static dependencies:
+
+
+# Dynamic dependencies:

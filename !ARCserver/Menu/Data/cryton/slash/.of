@@ -1,0 +1,4 @@
+PROMPT "{_>2500}of"
+!,"","GOTO slash.help","",0,NONE
+/,"","GOTO slash./","",0,NONE
+F,"","GOTO goodbye","",0,NONE

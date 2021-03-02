@@ -1,0 +1,15 @@
+{std cls bold}
+{_>0019 bg b eol _>4619 fg c _t6} left {fgbg rw}  ___       __   __{eol}
+{fgbg wb} Shortcuts: {fg y}/main    {fg w}Main menu{eol _>5720 fgbg rw}   |  \/\/ (__) (__{eol}
+{fgbg wb}            {fg y}/msg     {fg w}Message bases{eol _>5721 fgbg rw eol}
+{fgbg wb}            {fg y}/mu      {fg w}Multiuser chat{eol _>5722 fgbg bw}  S h o r t c u t s{eol}
+{fgbg wb eol _>5723 bg w eol _>0000}
+
+{bfgbg yn}All shortcuts are accessed by keying '/' followed by a code:
+            
+{fg c}/bul    {fg w}Bulletins                     {fg c}/bye    {fg w}Logoff menu        
+{fg c}/file   {fg w}Filebases                     {fg c}/main   {fg w}Main menu
+{fg c}/msg    {fg w}Message areas                 {fg c}/mu     {fg w}Multiuser chat
+{fg c}/page   {fg w}Page sysop                    {fg c}/yell   {fg w}Page sysop
+{fg c}/your   {fg w}Account options
+{_>0000}

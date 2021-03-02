@@ -1,0 +1,5 @@
+ECHO "{cls bfgbg wb} Cryton multiline                                            {fg c}Select filebase{eol |}"
+ECHO "{fgbg rw}      Note{std bfgbg rw}: Only areas you are joined to are listed. Use = to show areas{eol |}"
+ECHO "                               and + to join them{eol |}"
+CONF_SELECT FILE
+GOTO file

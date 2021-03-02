@@ -1,0 +1,14 @@
+|
+| Example event file to backup files
+|
+| Copy all files to a backup directory (you can use CFS: for this too)
+| (~C=no confirm, F=force overwrite, R=recurse, ~V=not verbose)
+|Copy <ARCserver$Dir>.Mail <ARCserver$Dir>.Backup.Mail ~CFR~V
+|Copy <ARCserver$Dir>.User <ARCserver$Dir>.Backup.User ~CFR~V
+|Copy <ARCserver$Dir>.Misc <ARCserver$Dir>.Backup.Misc ~CFR~V
+|
+| Make info file so we can see when last backup was done
+|Echo This backup is dated { > <ARCserver$Dir>.Backup.Info }
+|Time { >> <ARCserver$Dir>.Backup.Info }
+|
+| And now the BBS restarts... simple, innit?

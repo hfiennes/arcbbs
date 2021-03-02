@@ -1,0 +1,13 @@
+| Callrate
+DOING "Callrate"
+PROMPT "{bfgbg wb} Callrate {fgbg rw} Command {bg n} "
+|
+L,Local,CALLRATE L,,0,NONE
+A,A rate,CALLRATE A,,0,NONE
+1,B1 rate,CALLRATE 1,,0,NONE
+B,B rate,CALLRATE B,,0,NONE
+Y,Your options,GOTO your,,0,NONE
+M,Main menu,GOTO mainmenu,,0,NONE
+X,Expert/novice,TOGFLAGS U3,,0,NONE
+/,,GOTO slash./,,0,NONE
+|

@@ -1,0 +1,24 @@
+{cls bfgbg wb}  ___       __   __{eol}
+   |  \/\/ (__) (__     {fg c}System information{eol}
+{eol std}
+
+{bfg y}This BBS is being run on ARCbbs software, written by the Sysop. The hardware
+used is an A440/1 with Acorn internal 50Mb hard disk and Oak SCSI interface
+connected to a OMTI RLL controller which is driving a 71Mb Micropolis drive
+(giving 100Mb storage), and a MegaFile 5000 660Mb drive (only 512Mb of
+this drive can be used otherwise FileCore falls over!).
+ The modems being used are: Hayes V-series QuadPlus V42 on 679794 and
+Courier HST Dual Standards on the 670030 lines.
+ The A440/1 is fitted with a 30Mhz ARM3 so that the BBS can retain resonable
+performance when I am programming in the background (recompiling BBS
+versions, etc).
+
+{fg c}The Sysop is Hugo Fiennes (ALT_Man), whose address is:
+
+{fg w}Burcott Manor
+Wells
+Somerset    
+BA5 1NH
+
+Voice (0749) 72234
+

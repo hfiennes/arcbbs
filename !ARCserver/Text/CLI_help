@@ -1,0 +1,22 @@
+CLI command help
+----------------
+
+PROMPT <newprompt>         Change CLI-prompt
+LOGOFF                     Logoff system
+RELOGON                    Relogon to system
+PAGE                       Page sysop for chat
+CHAT <channel>             Multiuser chat
+TYPE <filename>            Display file
+ECHO <string>              Display string
+READ <messagebase>         Read messages
+WRITE <messagebase>        Write a message
+CHECKMAIL                  Check for private mail
+FILELIST <filebase> SHORT  Short filelist
+FILELIST <filebase> LONG   Long filelist
+UPLOAD <filebase>          Upload file(s)
+DOWNLOAD <filebase>        Download file(s)
+SHOWQUEUE                  Display download-queue
+CALLRATE <L/A/1/B>         Set your call rate
+CALLCOST                   Display call time/cost                    
+EXIT
+QUIT                       Exit CLI

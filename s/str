@@ -1,0 +1,171 @@
+;                    _____________________________________________
+;                  [>                                             <]
+;Project           [> ARCbbs/ARCterm                              <]
+;Author            [> Hugo Fiennes                                <]
+;Date started      [> 04-April-1989                               <]
+;                  [>                                             <]
+;Module name       [> String handling routines                    <]
+;Current version   [> 00.06                                       <]
+;Version date      [> 22-October-1991                             <]
+;State             [> Unfinished                                  <]
+;                  [>                                             <]
+;                  [>  This source is COPYRIGHT (c) 1989/90/91 by <]
+;                  [>      Hugo Fiennes of The Serial Port        <]
+;                  [>_____________________________________________<]
+
+; SWI values
+
+WriteC        * &00
+CLI           * &05
+Byte          * &06
+SerialOp      * &57
+
+XOS_MASK      * &00020000 ; mask to make a swi a RISC OS v-error swi
+
+; ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+; Register names   Modified for new call standard (GOD acorn, I wish you'd
+;                  stop chaging your mind...)
+; ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+a1 RN 0
+a2 RN 1
+a3 RN 2
+a4 RN 3
+v1 RN 4
+v2 RN 5
+v3 RN 6
+v4 RN 7
+v5 RN 8
+v6 RN 9
+sl RN 10
+fp RN 11
+ip RN 12
+sp RN 13
+lk RN 14
+pc RN 15
+
+ AREA |C$$code|, CODE, READONLY
+
+;--- stricmp ----------------------------------------------------------------
+; Compare string, ignoring case
+
+        EXPORT  stricmp
+stricmp                
+        STMFD   sp!,{lk}
+        ADR     lk,ascii_lower
+striloop
+        LDRB    a3,[a1],#1
+        LDRB    a3,[lk,a3]
+        LDRB    a4,[a2],#1
+        LDRB    a4,[lk,a4]
+        CMP     a3,a4
+        SUBNE   a1,a3,a4
+        LDMNEFD sp!,{pc}^
+        CMP     a3,#0
+        BNE     striloop
+        MOV     a1,#0
+        LDMFD   sp!,{pc}^
+
+;--- strnicmp ---------------------------------------------------------------
+; Compare string, ignoring case, to a length
+
+        EXPORT  strnicmp
+strnicmp                
+        STMFD   sp!,{v1,lk}
+        ADR     v1,ascii_lower
+        MOV     lk,a3     
+strniloop
+        LDRB    a3,[a1],#1
+        LDRB    a3,[v1,a3]
+        LDRB    a4,[a2],#1
+        LDRB    a4,[v1,a4]
+        CMP     a3,a4
+        SUBNE   a1,a3,a4
+        LDMNEFD sp!,{v1,pc}^
+        CMP     a3,#0
+        MOVEQ   a1,#0
+        LDMEQFD sp!,{v1,pc}^
+        SUBS    lk,lk,#1
+        BNE     strniloop
+        MOV     a1,#0
+        LDMFD   sp!,{v1,pc}^
+
+ascii_lower
+        = 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23
+        = 24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43
+        = 44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64
+        = "abcdefghijklmnopqrstuvwxyz",91,92,93,94,95,96
+        = "abcdefghijklmnopqrstuvwxyz",123,124,125,126,127,128
+        = 129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144
+        = 145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160
+        = 161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176
+        = 177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192
+        = 193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208
+        = 209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,224
+        = 225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240
+        = 241,242,243,244,245,246,247,248,249,250,251,252,253,254,255
+
+;--- xstrchr ----------------------------------------------------------------
+; Fast version
+
+       EXPORT  xstrchr
+xstrchr
+       LDRB    a3,[a1],#1
+       CMP     a3,a2
+       SUBEQ   a1,a1,#1
+       MOVEQ   pc,lk
+       CMP     a3,#0
+       MOVEQ   a1,#0
+       MOVEQ   pc,lk
+       LDRB    a3,[a1],#1
+       CMP     a3,a2
+       SUBEQ   a1,a1,#1
+       MOVEQ   pc,lk
+       CMP     a3,#0
+       MOVEQ   a1,#0
+       MOVEQ   pc,lk
+       LDRB    a3,[a1],#1
+       CMP     a3,a2
+       SUBEQ   a1,a1,#1
+       MOVEQ   pc,lk
+       CMP     a3,#0
+       MOVEQ   a1,#0
+       MOVEQ   pc,lk
+       LDRB    a3,[a1],#1
+       CMP     a3,a2
+       SUBEQ   a1,a1,#1
+       MOVEQ   pc,lk
+       CMP     a3,#0
+       MOVEQ   a1,#0
+       MOVEQ   pc,lk
+       LDRB    a3,[a1],#1
+       CMP     a3,a2
+       SUBEQ   a1,a1,#1
+       MOVEQ   pc,lk
+       CMP     a3,#0
+       MOVEQ   a1,#0
+       MOVEQ   pc,lk
+       LDRB    a3,[a1],#1
+       CMP     a3,a2
+       SUBEQ   a1,a1,#1
+       MOVEQ   pc,lk
+       CMP     a3,#0
+       MOVEQ   a1,#0
+       MOVEQ   pc,lk
+       LDRB    a3,[a1],#1
+       CMP     a3,a2
+       SUBEQ   a1,a1,#1
+       MOVEQ   pc,lk
+       CMP     a3,#0
+       MOVEQ   a1,#0
+       MOVEQ   pc,lk
+       LDRB    a3,[a1],#1
+       CMP     a3,a2
+       SUBEQ   a1,a1,#1
+       MOVEQ   pc,lk
+       CMP     a3,#0
+       MOVEQ   a1,#0
+       MOVEQ   pc,lk
+       BAL     xstrchr
+
+       END

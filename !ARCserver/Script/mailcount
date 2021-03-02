@@ -1,0 +1,21 @@
+;
+; Mail Check script: if there's any mail waiting, show it
+;
+main ()
+  {
+  user_get()
+  if (user.mailcount>0)
+    {
+    menucommand("DOING 'Checking Mail'")
+    prints "{cls fgbg wb} ___       __   __{eol |}"
+    prints "  |  \/\/ (__) (__  {fg c}Your {fg w}"+$str(user.mailcount)+" item"
+    if (user.mailcount>1)
+      {
+      prints "s"
+      }      
+    prints "{fg c} of e-mail, o small {fg g}green {fg c}one...{eol |}"
+    prints "{eol | |}"
+    menucommand("CHECKMAIL")
+    }
+  menucommand("GOTO mainmenu")
+  }

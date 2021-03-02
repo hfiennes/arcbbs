@@ -1,0 +1,22 @@
+| Public Message bases
+DOING "Msg base"
+PROMPT "{bfgbg wb} Message {fgbg rw} Command {bg n} "
+|
+W,Write a message,GOTO do.msg_write,,>f,NONE
+R,Read messages,GOTO do.msg_read
+S,Send private mail,GOTO do.pri_write2,,>f,NONE
+C,Check for private mail,CHECKMAIL
+M,Main menu,GOTO mainmenu
+*,Reselect conference,GOTO do.msg_select
+D,Download new messages,GOTO scratch
+U,Upload messages,GOTO do.msg_upload,,>f,NONE
+Z,Zip through new messages,GOTO do.msg_zip
+T,Time travel,GOTO back
+|
+=,Show all conferences,GOTO do.msg_all
+$,List my conferences,GOTO do.msg_mine
++,Join a conference,CONF_JOIN
+-,Resign from a conference,CONF_RESIGN
+X,Expert/novice,TOGFLAGS U3
+/,,GOTO slash./
+|

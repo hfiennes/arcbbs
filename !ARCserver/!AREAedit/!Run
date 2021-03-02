@@ -1,0 +1,3 @@
+WimpSlot -min 96k -max 96k
+Set AREAedit$Dir <Obey$Dir>
+Run <AREAedit$Dir>.!RunImage %*0

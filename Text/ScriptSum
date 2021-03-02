@@ -1,0 +1,651 @@
+ARCbbs 7 script command summary    © The Serial Port     19th February 1993
+-------------------------------
+
+Applicable to ARCbbs version 1.63+
+
+Integer expression evaluation
+-----------------------------
+
+  [0-9]                           Base 10 numbers, eg 155.
+
+  0x[0-f]                         Hexadecimal, eg 0x9b = 155.
+
+  +,-,*,/
+                                  Self explanitory!
+
+
+  %
+                                  Modulus (like MOD in BASIC).
+
+
+  <<
+                                  Left shift (like BASIC).
+
+
+  >>
+                                  Right shift (like BASIC).
+
+
+  = or ==
+                                  Equal to.
+
+
+  <> or !=
+                                  Not equal to.
+
+
+  <=
+                                  Less than or equal to.
+
+
+  >=
+                                  Greater than or equal to.
+
+
+  <
+                                  Less than.
+
+
+  >
+                                  Greater than.
+
+
+  !
+                                  Logical NOT.
+
+
+  ~
+                                  Bitwise NOT.
+
+
+  &&
+                                  Logical AND.
+
+
+  &
+                                  Bitwise AND.
+
+
+  ||
+                                  Logical OR.
+
+
+  |
+                                  Bitwise OR.
+
+
+  ^
+                                  Bitwise EOR.
+
+
+  len(string)
+                                  Returns length of string.
+
+  asc(string)
+                                  Returns ASCII value of first character in
+                                  string.
+
+  'x'
+                                  Returns the ASCII value of the character x,
+                                  like asc("x").
+
+  val(string)
+                                  Returns numeric value of string.
+
+  compare(string1,string2)
+                                  Returns 0 if string1 and string2 are not
+                                  equal, returns non-0 if strings are equal.
+                                  CASE SENSITIVE.
+
+  comparei(string1,string2)
+                                  Returns 0 if string1 and string2 are not
+                                  equal, returns non-0 if strings are equal.
+                                  CASE INSENSITIVE.
+
+  strcmp(string1,string2)
+                                  String compare like C.
+                                  CASE SENSITIVE.
+
+  stricmp(string1,string2)
+                                  String compare like C.
+                                  CASE INSENSITIVE.
+
+  instr(string1,string2)
+                                  Returns position in string1 (numbered
+                                  from 1) where string2 first occurrs.
+                                  Returns 0 if string2 not found.
+
+
+String expression evaluation
+----------------------------
+
+  +
+                                  Add two strings together.
+
+  $left(string,howmuch)
+                                  Returns the first howmuch characters of
+                                  string (like LEFT$ in BASIC).
+
+  $right(string,howmuch)
+                                  Returns the last howmuch characters of
+                                  string (like RIGHT$ in BASIC).
+
+  $mid(string,where[,howmuch])
+                                  Returns howmuch (if specified, otherwise
+                                  assumed to be 1) characters of string,
+                                  starting at point where (numbered from 1).
+
+  $chr(asciivalue)
+                                  Returns a string of the single ASCII
+                                  character specified.
+
+  $str(expression)
+                                  Returns a string of the expression
+                                  evaluated in decimal.
+
+
+Variables
+---------
+
+Variable names and values are searched for in the order most volatile
+downwards. Called functions inherit the variables of the caller.
+
+  integer name[[arraysize]][=expression][,...]
+  int name[[arraysize]][=expression][,...]
+                                  Makes a variable 'name' (the name can be
+                                  the same as another defined at another
+                                  nesting level), and optionally assigns
+                                  a value to it. Multiple creations and
+                                  assignments can be separated by commas.
+                                  eg:
+
+                                  integer a,b=(5*function()),c
+
+                                  Arrays may also be created, but NOT
+                                  initialised:
+
+                                  integer a[20],b
+                                  
+                                  (elements are accessed as in C, with
+                                  variable[element] - elements are numbered
+                                  from zero).
+
+  string name[[arraysize]][size][=stringexpression][,...]
+  char name[[arraysize]][size][=stringexpression][,...]
+                                  Makes a variable 'name' (the name can be
+                                  the same as another defined at another
+                                  nesting level), and optionally assigns
+                                  a value to it. Multiple creations and
+                                  assignments can be separated by commas.
+                                  Lengths MUST be defined and cannot be
+                                  exceeded.
+                                  eg:
+
+                                  string a[50],b[10]="hello"
+
+                                  Arrays may also be created, but NOT
+                                  initialised:
+
+                                  string a[20][10],b[5]
+
+                                  (elements are accessed as in C, with
+                                  variable[element] - elements are numbered
+                                  from zero).
+
+Structures
+----------
+
+  for... works just like FOR...NEXT in BASIC.
+
+    for variable = start to end [step value]
+      {
+      ... instructions ...
+      }
+
+  while... works like while() {} in C.
+
+    while(expression!=0)
+      {
+      ... instructions ...
+      }
+
+  repeat...until works like REPEAT...UNTIL in BASIC.
+
+    repeat
+      {
+      ... instructions ...
+      }
+    until(expression==0)
+
+  if...else works like IF...THEN...ELSE in BASIC. The else part is optional.
+
+    if(expression!=0)
+      {
+      ... instructions for !=0 ...
+      }
+    else
+      {
+      ... instructions for ==0 ...
+      }
+
+  switch...case...[default] works a bit like switch...case in C. Aswell as
+  case(), case$() and case$i() can be used which cause the instructions to be
+  executed if the string expression in switch() matches the one in the case$,
+  case sensitively or insensitively.
+
+    switch(expression1)
+      {
+      case(expression2)
+        {
+        ... instructions for expression1==expression2 ...
+        }
+      case(expression3,expression4)
+        {
+        ... instructions for expression1==expression3 or
+                             expression1==expression4 ...
+        }
+      default
+        {
+        ... (must be at the end of the list of case's)
+            instructions if no case's were executed ...
+        }
+      }
+
+Returning values
+----------------
+
+  return([expression])
+                                  Returns the numeric expression to the caller
+                                  of the routine. If no expression is
+                                  specified, 0 is returned.
+
+  $return(stringexpression)
+                                  Returns the specified string expression.
+                                  To use this, the function name being returned
+                                  from must start with a '$'.
+
+Serial port
+-----------
+
+  Serial port data transfer
+  -------------------------
+
+  port_tx(data)
+                                  Sends the byte specified.
+
+  port_rx()
+                                  If there is data waiting in the receive
+                                  buffer this returns the first byte in the
+                                  buffer otherwise it returns -1 to indicate
+                                  buffer empty.
+
+  port_txbuffer()
+                                  This returns the number of free bytes in
+                                  the transmit buffer.
+
+  port_rxbuffer()
+                                  This returns the number of bytes waiting
+                                  in the receive buffer.
+
+  port_txclear()
+                                  Clears the transmit buffer.
+
+  port_rxclear()
+                                  Clears the receive buffer.
+
+Screen output
+-------------
+
+These functions pass data to the current terminal emulation.
+
+
+  prints(string)
+                                  Send the specified string.
+                                  Note the string is parsed like the BBS
+                                  ECHO command, so colour codes are
+                                  decoded.
+
+  print(expression)
+                                  Displays expression evaluated in decimal.
+
+  vdu(byte)
+                                  Displays byte.
+
+File functions
+--------------
+
+filenumber is a number used to refer to a file, and is in the range 1-4.
+
+
+  file_openin(filenumber,filename)
+                                  Tries to open filename for input as
+                                  filenumber. Returns a non-0 value if the
+                                  open suceeded.
+
+  file_openout(filenumber,filename)
+                                  Tries to open filename for output as
+                                  filenumber. Returns a non-0 value if the
+                                  open suceeded.
+
+  file_openup(filenumber,filename)
+                                  Tries to open filename for update (input/
+                                  output) as filenumber. Returns a non-0
+                                  value if the open suceeded.
+
+  file_close(filenumber)
+                                  Closes the specified filenumber.
+
+  $file_readline(filenumber)
+                                  Returns a string read from the specified
+                                  filenumber. Strings are LF terminated in
+                                  the file, and the LF is not returned by
+                                  this call.
+
+  file_writeline(filenumber,string)
+                                  Writes string as a LF terminated line to
+                                  the specified filenumber.
+
+  file_readbyte(filenumber)
+                                  Reads a byte from file filenumber and
+                                  returns it.
+
+  file_writebyte(filenumber,byte)
+                                  Writes byte to file filenumber.
+
+  file_eof(filenumber)
+                                  Returns non-0 if filenumber is at EOF.
+
+  file_ptr(filenumber)
+                                  Returns the offset of the file pointer
+                                  from the beginning of the file (in bytes)
+                                  on file filenumber.
+
+  file_setptr(filenumber,newpointer)
+                                  Sets the file pointer for file filenumber
+                                  to newpointer bytes into the file.
+
+  file_ext(filenumber)
+                                  Returns the extent (length) of the
+                                  specified filenumber.
+
+  $dirscan("wildcarded string")
+                                  This function will scan directories:
+                                  call it first with the wildcarded
+                                  specification, then call it subsequently
+                                  with "" until it returns an empty string
+                                  to read all entries.
+
+                                  eg to read and display the current
+                                  directory you would use:
+
+                                  string file[40]
+
+                                  file=$dirscan("@.*")
+                                  repeat
+                                    {
+                                    prints file+newline
+                                    file=$dirscan("")
+                                    }
+                                  until(len(file)==0)
+
+
+Miscellaneous functions
+-----------------------
+
+  pause(time)
+                                  Pauses for time cs.
+
+  end()
+                                  Terminates script execution.
+
+  shutdown()
+                                  Terminates ARCbbs run.
+
+  chain(filename)
+                                  Terminates current script execution and
+                                  runs specified script.
+
+  $getenv(variablename)
+                                  Returns the value of the OS variable
+                                  specified, eg to display the time you
+                                  might use:
+
+                                  prints $getenv("sys$time")+newline
+
+  oscli(command)
+                                  Executes the specified *-command. Do not
+                                  use this function to run programs - only
+                                  non memory corrupting tasks. 
+
+  system(command)
+                                  Executes the specified *-command after
+                                  moving ARCbbs out of the way. The 
+                                  *-command will have whatever space is
+                                  left over, so to run big tasks you will
+                                  need to increase the wimpslot.
+
+  swi(swinr,regs)
+                                  swinr is the swi number, regs
+                                  is an integer array of at least 10
+                                  elements: When the swi is executed,
+                                  r0-r9 are set up to regs[0] - regs[9].
+                                  After the swi, regs[0]-regs[9] are the
+                                  values of r0-r9 on exit.
+
+                                  For example:
+
+                                  main()
+                                    {
+                                    integer r[10]
+
+                                    r[0]=0
+                                    r[1]=1
+                                    swi(6,r)
+                                    prints "Version="+$str(r[1])+newline
+                                    }
+
+                                  Calls FX 0 to get the OS version and
+                                  prints it.
+
+  swinr(swistring)
+                                  This complements swi, providing a swi
+                                  name to number conversion. For example,
+                                  the swi(6,r) above could have been made
+                                  more readable using:
+
+                                  swi(swinr("OS_Byte"),r).
+
+  address(variable)
+                                  For use with swi, this returns the address
+                                  where the specified variable is stored (if
+                                  the variable is an array, then the start of
+                                  the array is returned). For example, to
+                                  call OS_ReadVduVariables, you pass it an
+                                  'in' array of integers and an 'out' array:
+
+                                  main ()
+                                    {
+                                    integer regs[10],in[4],out[4]
+
+                                    in[0]=150
+                                    in[1]=256
+                                    in[2]=257
+                                    in[3]=-1
+
+                                    regs[0]=address(in)
+                                    regs[1]=address(out)
+                                    swi(swinr("OS_ReadVduVariables"),regs)
+
+                                    prints "Total screen size="+$str(out[0])
+                                    prints " bytes"+newline
+                                    prints "Characters/line  ="+
+                                           $str(out[1])+newline
+                                    prints "Rows/screen      ="+
+                                           $str(out[2])+newline
+                                    }
+
+                                  Be careful not to overrun the array end
+                                  etc - it could cause a crash.
+
+Time functions
+--------------
+
+  time()
+  clock()
+                                  Return the current value of a centisecond
+                                  timer (like TIME in BASIC).
+
+  localtime()
+                                  Returns the current time in seconds
+                                  since 1-January-1900 00:00:00 (unixtime)
+
+  $strftime(formatstring,timetouse)
+                                  This is a rather close relative to C's
+                                  strftime() function: passed a format
+                                  string and a time value (unixtime), it
+                                  generates a string of the time according
+                                  to the formatstring: this can include
+                                  any text, but the following are expanded:
+
+                                  %a - short weekday name
+                                  %A - long weekday name
+                                  %b - short month name
+                                  %B - long month name
+                                  %c - date and time in standard format
+                                  %d - day of month (1-31)
+                                  %H - 24-hour clock hour (00-23)
+                                  %I - 12-hour clock hour (01-12)
+                                  %j - day of year (1-366)
+                                  %m - month (01-12)
+                                  %M - minute (00-59)
+                                  %P - am/pm
+                                  %S - second (00-59)
+                                  %U - Week of the year (sun=1st day of week)
+                                       (00-53)
+                                  %w - weekday (0-6)
+                                  %W - Week of the year (mon=1st day of week)
+                                       (00-53)
+                                  %x - Standard date
+                                  %X - Standard time
+                                  %y - Year of century (00-99)
+                                  %Y - Full year (1900-)
+                                  %z - Time zone if known
+                                  %% - percent sign
+
+  usetime(timetouse)
+            The following variables are only valid after usetime(unixtime)
+            - this breaks down the unix-time specified into the following
+            parts:
+
+            time.seconds                    - Seconds in the minute
+            time.minutes                    - Minutes in the hour
+            time.hours                      - Hours in the day
+            time.month                      - Months in the year (0-11)
+            time.year                       - Years since 1900
+            time.dayofweek                  - Day of week (0=Sunday)
+            time.dayofmonth                 - Day of month (1-31)
+            time.dayofyear                  - Day of year (0-365)
+
+ARCbbs specific functions
+-------------------------
+
+  user_get()                      
+                                  Refresh the memory copy of the user
+                                  info. You *must* do this before
+                                  changing info and using user_put(),
+                                  incase mailpointers have been changed
+                                  by an arriving mail msg.
+
+  user_put()
+                                  Write the memory copy of the user info.
+
+  user_find(username)
+                                  Returns the user number of the username
+                                  specified, or -1 if not found.
+
+  user_findwrite(username,usernumber)
+                                  Creates a user lookup record linking the
+                                  specified username text and the specified
+                                  usernumber.
+
+  user_free()
+                                  Returns the usernumber of the first unused
+                                  user in the userlog.
+
+  menucommand("command")          
+                                  Execute an 'old style' menu command. If
+                                  you want to use quotes in the old-style
+                                  menu command, use can use 'single quotes'
+                                  (like that).
+
+  sendfile(filename[,abortkeys])
+                                  Displays the specified file to the user.
+                                  Can be aborted by pressing any key or
+                                  (if abortkeys specified) by the user
+                                  pressing one of the keys in the abortkeys
+                                  string (this key is not removed from the
+                                  input buffer).
+
+  doing(string)
+                                  Just like the ARCbbs DOING command.
+
+  lastmsg()
+                                  Returns the highest message number in use.
+
+Predefined strings (in !ARCserver.Script.Library)
+-------------------------------------------------
+
+  cr                = $chr(13)
+  return            = $chr(13)
+  lf                = $chr(10)
+  newline           = $chr(13)+$chr(10)
+  escape            = $chr(27)
+  csi               = $chr(27)+"["
+
+System variables
+----------------
+Arrays are shown as [min..max]
+String length as (len) - if no length it is a number
+
+  user.status                     - Non zero if this user exists
+  user.usernumber                 - User's usernumber
+  user.mailcount                  - Count of waiting mail
+  user.t_firstlogon               - User's first call (UNIX time format)
+  user.t_lastlogon                - User's last call (UNIX time format)
+  user.m_message                  - Highest msg# read (in msgbases)
+  user.m_file                     - Highest msg# read (in filebases)
+  user.termtype                   - Terminal type
+  user.f_message                  - Message flags
+  user.f_file                     - File flags
+  user.f_user                     - User flags
+  user.padsize                    - Pad size
+  user.ratio                      - Download ratio
+  user.userlevel                  - Userlevel
+  user.logon                      - Number of logons
+  user.uploads                    - Number of uploads
+  user.downloads                  - Number of downloads
+  user.timeallowed                - Time allowed per day/call
+  user.timetoday                  - Time used today
+  user.username(30)               - Username
+  user.realname(30)               - Real name
+  user.address[0..3](30)          - Address
+  user.postcode(10)               - Postcode
+  user.telephone(30)              - Telephone
+  user.callrate                   - Call rate
+  user.pagelen                    - Page length
+  user.conference                 - Current STORED conference
+  user.filebase                   - Current STORED filebase
+  
+  system.portnumber               - Port number script is running on
+  system.conference               - Currently selected conference
+  system.filebase                 - Currently selected filebase
+  system.baudrate                 - Baudrate of this call
+  system.arq                      - Non-zero if error correction active
+  system.scratchpadsize           - Size of scratchpad (0=no scratchpad)
+  system.files_done               - Number of files transferred with last
+                                    xfer
+  
+  queue.length                    - Number of items in download queue
+  queue.filenumber[0..63]         - Filenumber of file in queue
+  queue.filesize[0..63]           - Size of file in queue
+  queue.filename[0..63](20)       - Filename of file in queue

@@ -1,0 +1,36 @@
+ECHO {eol}
+ECHO
+ECHO {eol}
+ECHO
+ECHO {eol}
+ECHO
+ECHO {eol}
+ECHO
+ECHO {eol}
+ECHO
+ECHO {eol}
+ECHO
+ECHO {eol}
+ECHO
+ECHO {eol}
+ECHO
+ECHO {eol}
+ECHO
+ECHO {eol}
+ECHO
+ECHO {eol}
+ECHO
+ECHO {eol}
+ECHO
+ECHO {eol}
+ECHO
+ECHO {eol}
+ECHO
+ECHO {eol}
+ECHO
+ECHO {eol}
+ECHO
+ECHO {_>0002}
+S_MESSAGE
+S_DOWNLOAD
+GOTO scratch

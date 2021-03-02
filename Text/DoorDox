@@ -1,0 +1,255 @@
+ARCbbs Door Interface
+=====================
+
+Purpose
+=======
+
+To allow people to write nifty widgets that interact with ARCbbs users, with
+little implementation headaches.
+
+Installation
+============
+
+Load the DoorModule.
+
+How it all works
+================
+
+There are 3 means of contact between ARCbbs and a door:
+
+      1. The status byte
+      2. The request/reply protocol
+      3. The input/output buffers
+
+The status byte is used by ARCbbs to indicate a connection is requested,
+and by either ARCbbs or a door to indicate that the connection has been/is
+to be terminated.
+
+The request/reply protocol is a mechanism whereby doors can read/write user
+data, messages/filebase entries, and initiate uploads/downloads. Basically,
+the door prepares a 256-byte request block and calls the doors module. ARCbbs
+polls this request block periodically [eg every wimp_poll] and if it sees a
+request, will answer it with a reply. After the request has been sent the door
+waits for a reply with another call until the reply arrives (this should be
+1 wimp_poll in most cases, except for file transfers!).
+
+The input/output buffers are 1k buffers in each direction to/from the door
+going to the BBS. The door puts stuff it wants to send to the user into the
+output buffer, which (if there is room in the serial o/p buffer) it dumps to
+the serial port, and vice-versa.
+
+In practice
+===========
+
+When an ARCbbs port initialises (either by loading or by a new call), it sets
+its message byte to 0, indicating an idle state.
+
+When a door is called using the DOOR command (door() in the script language)
+the door number passed is put in the status byte - door numbers range from
+1 to 254. ARCbbs will then wait 5 seconds for a loaded door to see the request
+and signal that it will handle the connection, by writing the value 255 to
+the status byte. The input and output buffers are cleared.
+
+Now the connection is active, data can be passed both ways in the buffer and
+requests can be serviced. If ARCbbs detects a carrier loss or the users time
+is up it will write the value 0 to the status byte - the door should recognise
+this and reset. Similarly if the door wants to clear the connection, it should
+write 0 to the status byte - ARCbbs will close the door.
+
+Technicalities
+==============
+
+DOOR <xx> where <xx> is the door number in the range 1-254 calls a door from
+ARCbbs.
+
+Currently ARCbbs_Doors has not got a SWI chunk allocated by Acorn, and so it
+uses the value &41040 as its base (&40 more than the ARCbbs_Filer module).
+
+There are some SWIs missing from the list below - they are reserved for use
+by the ARCbbs end - for example, reading and writing the other end of the
+input/output buffers.
+
+If a door closes the connection, ARCbbs will display the remainder of the
+data in the output buffer before returning to BBS control, so that doors
+can clear calls instantly but still sign off properly.
+
+It is possible to have multiple doors loaded all the time, each scanning for
+its door number at every poll, but this is wasteful. Instead, a door manager
+is more likely: this would scan for door requests and load the correct door,
+passing it the portnumber that the connection is requested on to the door.
+It looks like Dean Murphy (Svlad Cjelli) is going to do one of these, with
+nice dragging door apps in & out to configure it (ok, so that's a hint Dean).
+
+Reading and writing the status byte
+-----------------------------------
+
+Status byte values:
+
+    0 indicates no connection/disconnect please.
+    255 indicates door active.
+    1-254 indicates a pending door request.
+
+SWIs:
+
+  "ARCbbsDoors_ReadStatus"                                          (&41040)
+  in  r0=line number
+  out r0=status byte
+
+
+  "ARCbbsDoors_WriteStatus"                                         (&41041)
+  in  r0=line number
+      r1=new status byte
+
+Issuing request and waiting for replies
+---------------------------------------
+
+Note that a request and a reply share the same buffer space in the ARCbbs_Doors
+module and so if a reply is waiting to be read and a request is issued, the
+reply will be overwritten.
+
+  "ARCbbsDoors_SendRequest"                                         (&41042)
+  in  r0=line number
+      r1=pointer to 256-byte request block
+
+  "ARCbbsDoors_GetReply"                                            (&41043)
+  in  r0=line number
+      r1=pointer to 256-byte block into which reply will be copied if ready
+  out r0=if no reply yet -1 (carry set), otherwise 0 (carry clear).
+
+Input & output buffers
+----------------------
+
+Note the difference between the two status calls: like the OS, the output
+buffer value DECLINES as the buffer gets fuller, the input buffer value
+INCREASES as the buffer gets fuller.
+
+  "ARCbbsDoors_InputStatus"                                         (&41046)
+  in  r0=line number
+  out r0=bytes WAITING (ie used) in buffer
+
+  "ARCbbsDoors_InputRead"                                           (&41047)
+  in  r0=line number
+  out r0=next byte or -1 if nothing to read
+
+  "ARCbbsDoors_OutputStatus"                                        (&41048)
+  in  r0=line number
+  out r0=bytes FREE (ie UNused) in buffer
+
+  "ARCbbsDoors_OutputWrite"                                         (&41049)
+  in  r0=line number
+      r1=byte to be inserted in output buffer
+
+  "ARCbbsDoors_ClearInput"                                          (&4104a)
+  in  r0=line number
+
+  "ARCbbsDoors_ClearOutput"                                         (&4104b)
+  in  r0=line number
+
+Requests currently supported
+============================
+
+The format of a request block is:
+
+0-3  : Request #
+4-255: Any other data
+
+Replies are stored from the beginning of the reply block. Strings are C-style
+(ie NULL terminated), words are in sensible ( :-) ) byte-order. Times are
+also C-style, in number of seconds since 1 Jan 1970 00:00:00.
+
+Where the data is and what size is indicated like this: w4 indicates a word
+at offset 4 from start of reply. s60 indicates a string at offset 60. b128
+indicates a byte at offset 128.
+
+  # Comment
+--- ---------------------------------------------------------------------------
+  0 Read general user information:
+    w0  : usernumber
+    w4  : time of first logon
+    w8  : time of last logon
+    w12 : amount of private mail waiting
+    w16 : pointer to start of mail linked-list in message file
+    w20 : pointer to end of mail linked-list in message file
+    w24 : [messagebase] highest message # read
+    w28 : [filebase] highest message # read
+    w32 : terminal type (0=tty, 1=vt52, 2=vt100, 3=ansi)
+    w36 : message flags
+    w40 : file flags
+    w44 : user flags
+    w48 : up/download ratio
+    w52 : userlevel
+    w56 : number of logons
+    w60 : number of uploads
+    w64 : number of downloads
+    w68 : time allowed online per day (minutes) (if not reset with userflag)
+    w72 : time used today (minutes)
+    w76 : fidonet credit [currently unused]
+    w80 : fidonet flags [currently unused]
+    w84 : current conference #
+    w88 : current filebase #
+    w92 : outbox start pointer [currently unused]
+    w96 : outbox end pointer [currently unused]
+    w100: outbox mail count [currently unused]
+     104: Bitset of conferences/filebases joined to. 512 bits for 512
+          conferences/filebases (area#), LSB first
+    w168: Time used on this call (seconds)
+    w172: Time left for this call (seconds)
+    w176: Time allocated for this call (seconds)
+    w180: Speed of connection
+    b184: ARQ information. Currently 0=no ARQ, 1=ARQ in use.
+    b185: Call rate (eg 'a', 'b' etc)
+    b186: Page length
+    s187: username (31 bytes long inc terminator max)
+
+  1 Read user address etc:
+    s0  : username
+    s31 : real name
+    s62 : address (1)
+    s93 : address (2)
+    s124: address (3)
+    s155: address (4)
+    s186: postcode
+    s197: telephone #
+
+Codes 100-199 are for writing information to ARCbbs. They are not replied to.
+
+100 Write new uploads # (w4)
+101 Write new downloads # (w4)
+102 Write new ratio (w4)
+103 Write new time for this call (seconds) (w4)
+104 Write new time per day (minutes) (w4)
+105 Write new userlevel (w4)
+106 Write new message flags (w4)
+107 Write new file flags (w4)
+108 Write new user flags (w4)
+
+200 Start download (TX). Batch file already exists. Protocol passed in w4:
+
+    1: Xmodem
+    2: Xmodem-1k
+    3: Ymodem
+    4: Ymodem-g
+    5: Zmodem
+    6: SEAlink
+    7: Kermit
+
+    [not yet implemented]
+
+Other bits
+==========
+
+A sample door is included. It's slow, in BASIC, and doesn't use any input, but
+it's what I used for testing so it's the only door that exists at the moment.
+It will respond to any door number request.
+
+Future improvements
+===================
+
+* Door connection at key moments, eg:
+
+  . door'ed file transfer protocols
+  . full screen message editors
+  . interactive user registration
+  . front-end security systems
+
+* Option for the door to directly take over serial i/o on physical ports.

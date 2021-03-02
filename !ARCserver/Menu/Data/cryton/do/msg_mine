@@ -1,0 +1,8 @@
+ECHO "{cls bfgbg wb}  ___       __   __{eol |}" 
+ECHO "   |  \/\/ (__) (__                               {fg c}List all joined conferences{eol |}"
+ECHO "{eol |}"
+CONF_MEMBER MESSAGE
+ECHO "{bfgbg wb}                             Press any key{eol std}"
+ANYKEY
+ECHO
+GOTO public
