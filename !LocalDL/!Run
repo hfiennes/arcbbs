@@ -1,0 +1,6 @@
+WimpSlot -min 64k -max 64k
+|
+Set LocalDL$Dir <Obey$Dir>
+IconSprites <LocalDL$Dir>.!Sprites
+|
+Run <LocalDL$Dir>.!RunImage
