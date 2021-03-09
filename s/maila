@@ -9,7 +9,7 @@
 ;Version date      [> 23-December-1992                            <]
 ;State             [> Unfinished                                  <]
 ;                  [>                                             <]
-;                  [> This source is COPYRIGHT © 1989/90/91/92 by <]
+;                  [> This source is COPYRIGHT Â© 1989/90/91/92 by <]
 ;                  [>      Hugo Fiennes of The Serial Port        <]
 ;                  [>_____________________________________________<]
 
@@ -65,7 +65,7 @@ title
         = "ARCbbs_Filer",0
 
 help
-        = "ARCbbs Filer",9,"0.40 (23 Dec 1992) © Hugo Fiennes",0
+        = "ARCbbs Filer",9,"0.40 (23 Dec 1992) Â© Hugo Fiennes",0
 
 ;--- Filenames ----------------------------------------------------------------
 
@@ -500,8 +500,8 @@ findspace0
         CMP   r6,r2         ; Overrun?
         BGE   findspace_fail
 
-        LDR   r0,[r5,r6,LSR#5]
-        AND   r7,r6,#31
+        LDRB  r0,[r5,r6,LSR#3]
+        AND   r7,r6,#7
         ANDS  r0,r0,r8,LSL r7
         ADD   r6,r6,#2
 
@@ -515,8 +515,8 @@ findspace1
         CMP   r1,r4
         BEQ   findspace_ok  ; What we need?
 
-        LDR   r0,[r5,r6,LSR#5]
-        AND   r7,r6,#31
+        LDRB  r0,[r5,r6,LSR#3]
+        AND   r7,r6,#7
         ANDS  r0,r0,r8,LSL r7
         ADD   r6,r6,#2
         BEQ   findspace1    ; Empty - continue
@@ -529,20 +529,20 @@ findspace_ok                ; Lock the blocks
 
         MOV   r8,#1         ; 01=header block
 
-        LDR   r0,[r5,r6,LSR#5]
-        AND   r7,r6,#31     
+        LDRB  r0,[r5,r6,LSR#3]
+        AND   r7,r6,#7     
         ORR   r0,r0,r8,LSL r7
                             ; Lock the block
-        STR   r0,[r5,r6,LSR#5]
+        STRB  r0,[r5,r6,LSR#3]
         ADD   r6,r6,#2
 
         MOV   r8,#2         ; 10=data block
 findspace_ok0
-        LDR   r0,[r5,r6,LSR#5]
-        AND   r7,r6,#31     
+        LDRB  r0,[r5,r6,LSR#3]
+        AND   r7,r6,#7     
         ORR   r0,r0,r8,LSL r7
                             ; Lock the block
-        STR   r0,[r5,r6,LSR#5]
+        STRB  r0,[r5,r6,LSR#3]
         ADD   r6,r6,#2
 
         SUBS  r4,r4,#1
@@ -566,24 +566,24 @@ freedata
         MOV   r3,#0
         MOV   r5,#3
 
-        LDR   r2,[r1,r0,LSR#5]
-        AND   r4,r0,#31
-        AND   r3,r2,r5,LSL r4
+        LDRB  r2,[r1,r0,LSR#3]
+        AND   r4,r0,#7
+        AND   r3,r5,r2,LSR r4    ; Move to bits 0-1 for compare
 
         CMP   r3,#1              ; Header block?
         LDMNEFD r13!,{r4-r5,pc}^
         BIC   r2,r2,r5,LSL r4
-        STR   r2,[r1,r0,LSR#5]   ; Clear bits
+        STRB  r2,[r1,r0,LSR#3]   ; Clear bits
 freedata0
         ADD   r0,r0,#2
-        LDR   r2,[r1,r0,LSR#5]
-        AND   r4,r0,#31
-        AND   r3,r2,r5,LSL r4
+        LDRB  r2,[r1,r0,LSR#3]
+        AND   r4,r0,#7
+        AND   r3,r5,r2,LSR r4    ; Move to bits 0-1 for compare
         CMP   r3,#2              ; Data block?
         LDMNEFD r13!,{r4-r5,pc}^
 
         BIC   r2,r2,r5,LSL r4
-        STR   r2,[r1,r0,LSR#5]   ; Clear bits
+        STRB  r2,[r1,r0,LSR#3]   ; Clear bits
         BAL   freedata0
 
 ;--- Locklookup ---------------------------------------------------------------
